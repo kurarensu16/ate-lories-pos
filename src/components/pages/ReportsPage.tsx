@@ -391,8 +391,8 @@ export const ReportsPage: React.FC = () => {
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">Top Customers</h3>
             <p className="mt-1 text-sm text-gray-500">Most frequent customers</p>
-          </div>
-          <div className="p-6">
+        </div>
+        <div className="p-6">
             <div className="space-y-4">
               {topCustomers.map(([customerName, orderCount], index) => (
                 <div key={index} className="flex items-center justify-between">
