@@ -14,7 +14,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE
 
 // Supabase client with service role for server-side operations
-const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE!)
+const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE 
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+  : null
 
 // Utility to compute HMAC SHA256 for signature verification
 function computeAppSecretProof(appSecret: string, payload: string) {
@@ -98,6 +100,11 @@ function extractMessagingEvents(entry: any): any[] {
 
 // Bot logic functions
 async function handleTextMessage(senderId: string, text: string) {
+  if (!supabase) {
+    await sendTextMessage(senderId, "Bot is temporarily unavailable. Please try again later.")
+    return
+  }
+  
   // Ensure customer exists
   await ensureCustomer(senderId)
   
@@ -121,6 +128,11 @@ async function handleTextMessage(senderId: string, text: string) {
 }
 
 async function handlePostback(senderId: string, payload: string) {
+  if (!supabase) {
+    await sendTextMessage(senderId, "Bot is temporarily unavailable. Please try again later.")
+    return
+  }
+  
   const session = await getOrCreateSession(senderId)
   
   if (payload.startsWith('ADD_')) {
