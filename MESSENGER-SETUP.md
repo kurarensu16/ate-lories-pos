@@ -24,7 +24,7 @@ Deploy after adding variables.
 
 ### 4) Webhook URL
 After deploy, your webhook endpoint is:
-- https://YOUR_DEPLOYMENT_DOMAIN/api/messenger
+- https://ate-lories-pos.vercel.app//api/messenger
 
 In the Facebook App > Messenger > Webhooks:
 - Callback URL: the endpoint above
