@@ -13,10 +13,8 @@ const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE
 
-// Supabase client with service role for server-side operations
-const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE 
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
-  : null
+// Supabase client (ensure non-null for types); runtime guards check env presence
+const supabase = createClient((SUPABASE_URL || '') as string, (SUPABASE_SERVICE_ROLE || '') as string) as any
 
 // Utility to compute HMAC SHA256 for signature verification
 function computeAppSecretProof(appSecret: string, payload: string) {
@@ -330,7 +328,7 @@ async function checkout(senderId: string, session: any) {
       .insert({
         customer_name: 'Messenger Customer',
         total_amount: total,
-        status: 'pending',
+        status: 'active',
         table_id: null,
         staff_notes: 'Order placed via Messenger'
       })
