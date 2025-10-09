@@ -21,6 +21,34 @@ function computeAppSecretProof(appSecret: string, payload: string) {
   return crypto.createHmac('sha256', appSecret).update(payload, 'utf8').digest('hex')
 }
 
+async function setupMessengerProfile() {
+  if (!FB_PAGE_ACCESS_TOKEN) return { ok: false, error: 'Missing PAGE ACCESS TOKEN' }
+  const base = 'https://graph.facebook.com/v17.0/me/messenger_profile'
+  const url = `${base}?access_token=${FB_PAGE_ACCESS_TOKEN}`
+
+  const body = {
+    get_started: { payload: 'GET_STARTED' },
+    persistent_menu: [
+      {
+        locale: 'default',
+        composer_input_disabled: false,
+        call_to_actions: [
+          { type: 'postback', title: "Today's Menu", payload: 'MENU' },
+          { type: 'postback', title: 'View Cart', payload: 'VIEW_CART' },
+          { type: 'postback', title: 'Checkout', payload: 'CHECKOUT' },
+        ],
+      },
+    ],
+  }
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = await resp.json()
+  return json
+}
 function verifySignature(req: any): boolean {
   try {
     if (!FB_APP_SECRET) return true
@@ -65,6 +93,15 @@ async function sendQuickReplies(recipientId: string, text: string, quickReplies:
       },
     }),
   })
+}
+
+function defaultQuickReplies() {
+  return [
+    { content_type: 'text', title: "Today's Menu", payload: 'MENU' },
+    { content_type: 'text', title: 'Cart', payload: 'VIEW_CART' },
+    { content_type: 'text', title: 'Checkout', payload: 'CHECKOUT' },
+    { content_type: 'text', title: 'Help', payload: 'HELP' },
+  ]
 }
 
 async function sendGenericTemplate(recipientId: string, elements: any[]) {
@@ -143,6 +180,12 @@ async function handlePostback(senderId: string, payload: string) {
     await showCart(senderId, session)
   } else if (payload === 'CHECKOUT') {
     await checkout(senderId, session)
+  } else if (payload === 'MENU') {
+    await showTodaysMenu(senderId)
+  } else if (payload === 'HELP') {
+    await sendWelcomeMessage(senderId)
+  } else if (payload === 'CLEAR_CART') {
+    await clearCart(senderId, session)
   }
 }
 
@@ -206,7 +249,7 @@ async function showTodaysMenu(senderId: string) {
   let message = "🍽️ *Today's Menu*\n\n"
   
   for (const item of menuItems) {
-    message += `• ${item.name} - $${item.price}\n`
+    message += `• ${item.name} - ₱${item.price}\n`
     if (item.description) {
       message += `  ${item.description}\n`
     }
@@ -215,14 +258,14 @@ async function showTodaysMenu(senderId: string) {
   
   message += "Reply with 'add [item name]' to add to cart, or 'cart' to view your order."
   
-  await sendTextMessage(senderId, message)
+  await sendQuickReplies(senderId, message, defaultQuickReplies())
 }
 
 async function showCart(senderId: string, session: any) {
   const cartItems = session.cart_items || []
   
   if (cartItems.length === 0) {
-    await sendTextMessage(senderId, "Your cart is empty. Reply with 'menu' to see today's items.")
+    await sendQuickReplies(senderId, "Your cart is empty. Choose an option:", defaultQuickReplies())
     return
   }
   
@@ -232,13 +275,15 @@ async function showCart(senderId: string, session: any) {
   for (const item of cartItems) {
     const subtotal = item.price * item.quantity
     total += subtotal
-    message += `${item.name} x${item.quantity} - $${subtotal.toFixed(2)}\n`
+    message += `${item.name} x${item.quantity} - ₱${subtotal.toFixed(2)}\n`
   }
   
-  message += `\n*Total: $${total.toFixed(2)}*\n\n`
-  message += "Reply with 'checkout' to place your order, or 'clear' to empty cart."
-  
-  await sendTextMessage(senderId, message)
+  message += `\n*Total: ₱${total.toFixed(2)}*\n\n`
+  await sendQuickReplies(senderId, message, [
+    { content_type: 'text', title: 'Checkout', payload: 'CHECKOUT' },
+    { content_type: 'text', title: 'Clear Cart', payload: 'CLEAR_CART' },
+    { content_type: 'text', title: "Today's Menu", payload: 'MENU' },
+  ])
 }
 
 async function addToCart(senderId: string, session: any, itemName: string) {
@@ -307,7 +352,7 @@ async function clearCart(senderId: string, session: any) {
     .update({ cart_items: [] })
     .eq('messenger_psid', senderId)
   
-  await sendTextMessage(senderId, "Cart cleared! Reply with 'menu' to see today's items.")
+  await sendQuickReplies(senderId, "Cart cleared! What next?", defaultQuickReplies())
 }
 
 async function checkout(senderId: string, session: any) {
@@ -375,11 +420,11 @@ async function checkout(senderId: string, session: any) {
     
     let message = `✅ *Order Placed Successfully!*\n\n`
     message += `Order #${order.id}\n`
-    message += `Total: $${total.toFixed(2)}\n\n`
+    message += `Total: ₱${total.toFixed(2)}\n\n`
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
     
-    await sendTextMessage(senderId, message)
+    await sendQuickReplies(senderId, message, defaultQuickReplies())
     
   } catch (error) {
     console.error('Checkout error:', error)
@@ -388,18 +433,8 @@ async function checkout(senderId: string, session: any) {
 }
 
 async function sendWelcomeMessage(senderId: string) {
-  const message = `👋 Welcome to Ate Lorie's POS!\n\n`
-  + `I can help you:\n`
-  + `• View today's menu\n`
-  + `• Add items to your cart\n`
-  + `• Place orders\n\n`
-  + `Reply with:\n`
-  + `• "menu" - See today's menu\n`
-  + `• "cart" - View your order\n`
-  + `• "add [item name]" - Add item to cart\n`
-  + `• "checkout" - Place your order`
-  
-  await sendTextMessage(senderId, message)
+  const message = `👋 Welcome to Ate Lorie's POS!\n\nTap a button below to begin.`
+  await sendQuickReplies(senderId, message, defaultQuickReplies())
 }
 
 export default async function handler(req: any, res: any) {
@@ -419,6 +454,11 @@ export default async function handler(req: any, res: any) {
 
   // Events (POST)
   if (req.method === 'POST') {
+    if (req.query?.setup === 'profile' && req.query?.token === FB_VERIFY_TOKEN) {
+      const result = await setupMessengerProfile()
+      res.status(200).json(result)
+      return
+    }
     if (!verifySignature(req)) {
       // Signature failed; reject but avoid leaking details
       res.status(403).json({ ok: false })
@@ -439,7 +479,9 @@ export default async function handler(req: any, res: any) {
           if (!senderId) continue
 
           // Handle incoming messages
-          if (event.message?.text) {
+          if (event.message?.quick_reply?.payload) {
+            await handlePostback(senderId, event.message.quick_reply.payload)
+          } else if (event.message?.text) {
             const text = (event.message.text as string).trim().toLowerCase()
             await handleTextMessage(senderId, text)
           } else if (event.postback?.payload) {
