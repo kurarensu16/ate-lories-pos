@@ -324,43 +324,65 @@ async function checkout(senderId: string, session: any) {
     // Calculate total
     const total = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
     
-    // Create order with proper structure
-    const { data: order, error } = await supabase
+    // Create order first
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         customer_name: 'Messenger Customer',
-        items: cartItems,
         total_amount: total,
         status: 'pending',
-        source: 'messenger',
-        created_at: new Date().toISOString()
+        table_id: null,
+        staff_notes: 'Order placed via Messenger'
       })
       .select()
       .single()
     
-    if (error) {
-      console.error('Order creation error:', error)
-      await sendTextMessage(senderId, `Order error: ${error.message}. Please try again.`)
+    if (orderError) {
+      console.error('Order creation error:', orderError)
+      await sendTextMessage(senderId, `Order error: ${orderError.message}. Please try again.`)
       return
     }
     
-    if (order) {
-      // Clear cart
-      await supabase
-        .from('bot_sessions')
-        .update({ cart_items: [] })
-        .eq('messenger_psid', senderId)
-      
-      let message = `✅ *Order Placed Successfully!*\n\n`
-      message += `Order #${order.id}\n`
-      message += `Total: $${total.toFixed(2)}\n\n`
-      message += `Your order is being prepared. You'll receive updates soon!\n\n`
-      message += `Reply with 'menu' to place another order.`
-      
-      await sendTextMessage(senderId, message)
-    } else {
+    if (!order) {
       await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
+      return
     }
+    
+    // Create order items
+    const orderItems = cartItems.map((item: any) => ({
+      order_id: order.id,
+      menu_item_id: item.id,
+      quantity: item.quantity,
+      unit_price: item.price,
+      special_instructions: null
+    }))
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems)
+    
+    if (itemsError) {
+      console.error('Order items creation error:', itemsError)
+      // Clean up the order if items failed
+      await supabase.from('orders').delete().eq('id', order.id)
+      await sendTextMessage(senderId, `Order error: ${itemsError.message}. Please try again.`)
+      return
+    }
+    
+    // Clear cart
+    await supabase
+      .from('bot_sessions')
+      .update({ cart_items: [] })
+      .eq('messenger_psid', senderId)
+    
+    let message = `✅ *Order Placed Successfully!*\n\n`
+    message += `Order #${order.id}\n`
+    message += `Total: $${total.toFixed(2)}\n\n`
+    message += `Your order is being prepared. You'll receive updates soon!\n\n`
+    message += `Reply with 'menu' to place another order.`
+    
+    await sendTextMessage(senderId, message)
+    
   } catch (error) {
     console.error('Checkout error:', error)
     await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
