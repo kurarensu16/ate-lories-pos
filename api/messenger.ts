@@ -187,34 +187,30 @@ async function getOrCreateSession(senderId: string) {
 }
 
 async function showTodaysMenu(senderId: string) {
-  const { data: menuItems } = await supabase
+  const { data: menuItems, error } = await supabase
     .from('menu_items')
     .select('*')
     .eq('is_today_menu', true)
     .eq('is_available', true)
-    .order('category', { ascending: true })
+    .order('name', { ascending: true })
+  
+  if (error) {
+    console.error('Menu fetch error:', error)
+    await sendTextMessage(senderId, "Sorry, there was an error loading the menu. Please try again later.")
+    return
+  }
   
   if (!menuItems || menuItems.length === 0) {
     await sendTextMessage(senderId, "Sorry, there's no menu available today. Please check back later!")
     return
   }
   
-  // Group by category
-  const categories = menuItems.reduce((acc: any, item: any) => {
-    if (!acc[item.category]) acc[item.category] = []
-    acc[item.category].push(item)
-    return acc
-  }, {})
-  
   let message = "🍽️ *Today's Menu*\n\n"
   
-  for (const [category, items] of Object.entries(categories)) {
-    message += `*${category}*\n`
-    for (const item of items as any[]) {
-      message += `• ${item.name} - $${item.price}\n`
-      if (item.description) {
-        message += `  ${item.description}\n`
-      }
+  for (const item of menuItems) {
+    message += `• ${item.name} - $${item.price}\n`
+    if (item.description) {
+      message += `  ${item.description}\n`
     }
     message += "\n"
   }
@@ -324,37 +320,49 @@ async function checkout(senderId: string, session: any) {
     return
   }
   
-  // Calculate total
-  const total = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
-  
-  // Create order
-  const { data: order } = await supabase
-    .from('orders')
-    .insert({
-      customer_name: 'Messenger Customer',
-      items: cartItems,
-      total_amount: total,
-      status: 'pending',
-      source: 'messenger'
-    })
-    .select()
-    .single()
-  
-  if (order) {
-    // Clear cart
-    await supabase
-      .from('bot_sessions')
-      .update({ cart_items: [] })
-      .eq('messenger_psid', senderId)
+  try {
+    // Calculate total
+    const total = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
     
-    let message = `✅ *Order Placed Successfully!*\n\n`
-    message += `Order #${order.id}\n`
-    message += `Total: $${total.toFixed(2)}\n\n`
-    message += `Your order is being prepared. You'll receive updates soon!\n\n`
-    message += `Reply with 'menu' to place another order.`
+    // Create order with proper structure
+    const { data: order, error } = await supabase
+      .from('orders')
+      .insert({
+        customer_name: 'Messenger Customer',
+        items: cartItems,
+        total_amount: total,
+        status: 'pending',
+        source: 'messenger',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single()
     
-    await sendTextMessage(senderId, message)
-  } else {
+    if (error) {
+      console.error('Order creation error:', error)
+      await sendTextMessage(senderId, `Order error: ${error.message}. Please try again.`)
+      return
+    }
+    
+    if (order) {
+      // Clear cart
+      await supabase
+        .from('bot_sessions')
+        .update({ cart_items: [] })
+        .eq('messenger_psid', senderId)
+      
+      let message = `✅ *Order Placed Successfully!*\n\n`
+      message += `Order #${order.id}\n`
+      message += `Total: $${total.toFixed(2)}\n\n`
+      message += `Your order is being prepared. You'll receive updates soon!\n\n`
+      message += `Reply with 'menu' to place another order.`
+      
+      await sendTextMessage(senderId, message)
+    } else {
+      await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
+    }
+  } catch (error) {
+    console.error('Checkout error:', error)
     await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
   }
 }
