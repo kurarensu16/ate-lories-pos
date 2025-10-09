@@ -246,19 +246,26 @@ async function showTodaysMenu(senderId: string) {
     return
   }
   
-  let message = "🍽️ *Today's Menu*\n\n"
-  
-  for (const item of menuItems) {
-    message += `• ${item.name} - ₱${item.price}\n`
-    if (item.description) {
-      message += `  ${item.description}\n`
-    }
-    message += "\n"
+  // Build generic template with buttons for Add to Cart / View Cart
+  const elements = (menuItems as any[]).map((item: any) => ({
+    title: `${item.name} — ₱${Number(item.price).toFixed(2)}`,
+    subtitle: item.description || 'Tap to add to cart',
+    image_url: item.image_url || undefined,
+    buttons: [
+      { type: 'postback', title: 'Add to Cart', payload: `ADD_${item.id}` },
+      { type: 'postback', title: 'View Cart', payload: 'VIEW_CART' },
+    ],
+  }))
+
+  for (let i = 0; i < elements.length; i += 10) {
+    await sendGenericTemplate(senderId, elements.slice(i, i + 10))
   }
-  
-  message += "Reply with 'add [item name]' to add to cart, or 'cart' to view your order."
-  
-  await sendQuickReplies(senderId, message, defaultQuickReplies())
+
+  await sendQuickReplies(senderId, 'Select an action:', [
+    { content_type: 'text', title: 'Cart', payload: 'VIEW_CART' },
+    { content_type: 'text', title: 'Checkout', payload: 'CHECKOUT' },
+    { content_type: 'text', title: 'Help', payload: 'HELP' },
+  ])
 }
 
 async function showCart(senderId: string, session: any) {
