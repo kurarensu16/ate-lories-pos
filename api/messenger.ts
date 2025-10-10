@@ -146,6 +146,33 @@ async function handleTextMessage(senderId: string, text: string) {
   // Get or create session
   const session = await getOrCreateSession(senderId)
   
+  // Check if we're collecting customer information
+  if (session.stage === 'collecting_name') {
+    await supabase
+      .from('bot_sessions')
+      .update({ 
+        customer_name: text.trim(),
+        stage: 'collecting_address'
+      })
+      .eq('messenger_psid', senderId)
+    
+    await sendTextMessage(senderId, "Great! Now please provide your block and lot number (e.g., Block 5, Lot 12):")
+    return
+  }
+  
+  if (session.stage === 'collecting_address') {
+    await supabase
+      .from('bot_sessions')
+      .update({ 
+        customer_address: text.trim(),
+        stage: 'idle'
+      })
+      .eq('messenger_psid', senderId)
+    
+    await sendTextMessage(senderId, "Perfect! Now you can proceed with checkout. Reply with 'checkout' to place your order.")
+    return
+  }
+  
   if (text.includes('menu') || text === '1') {
     await showTodaysMenu(senderId)
   } else if (text === 'cart' || text === '2') {
@@ -186,6 +213,8 @@ async function handlePostback(senderId: string, payload: string) {
     await sendWelcomeMessage(senderId)
   } else if (payload === 'CLEAR_CART') {
     await clearCart(senderId, session)
+  } else if (payload === 'print_receipt') {
+    await printReceipt(senderId, session)
   }
 }
 
@@ -362,12 +391,92 @@ async function clearCart(senderId: string, session: any) {
   await sendQuickReplies(senderId, "Cart cleared! What next?", defaultQuickReplies())
 }
 
+async function printReceipt(senderId: string, session: any) {
+  try {
+    // Get the most recent order for this customer
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          quantity,
+          unit_price,
+          special_instructions,
+          menu_items (name)
+        )
+      `)
+      .eq('customer_name', session.customer_name)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    
+    if (error || !orders || orders.length === 0) {
+      await sendTextMessage(senderId, "No recent orders found. Please place an order first.")
+      return
+    }
+    
+    const order = orders[0]
+    const orderItems = order.order_items || []
+    
+    let receipt = `🖨️ *RECEIPT*\n\n`
+    receipt += `Order #${order.id}\n`
+    receipt += `Customer: ${order.customer_name}\n`
+    receipt += `Address: ${order.staff_notes?.replace('Order placed via Messenger - Address: ', '') || 'N/A'}\n`
+    receipt += `Date: ${new Date(order.created_at).toLocaleString()}\n`
+    receipt += `Status: ${order.status.toUpperCase()}\n\n`
+    receipt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+    receipt += `ITEMS ORDERED:\n\n`
+    
+    let total = 0
+    orderItems.forEach((item: any) => {
+      const itemTotal = item.quantity * item.unit_price
+      total += itemTotal
+      receipt += `${item.menu_items.name}\n`
+      receipt += `  Qty: ${item.quantity} × ₱${item.unit_price.toFixed(2)} = ₱${itemTotal.toFixed(2)}\n`
+      if (item.special_instructions) {
+        receipt += `  Note: ${item.special_instructions}\n`
+      }
+      receipt += `\n`
+    })
+    
+    receipt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+    receipt += `TOTAL: ₱${total.toFixed(2)}\n\n`
+    receipt += `Thank you for your order! 🙏\n`
+    receipt += `Keep this receipt for your records.`
+    
+    await sendTextMessage(senderId, receipt)
+    
+  } catch (error) {
+    console.error('Print receipt error:', error)
+    await sendTextMessage(senderId, "Sorry, there was an error generating your receipt. Please try again later.")
+  }
+}
+
 async function checkout(senderId: string, session: any) {
   const cartItems = session.cart_items || []
   
   if (cartItems.length === 0) {
     await sendTextMessage(senderId, "Your cart is empty. Reply with 'menu' to see today's items.")
     return
+  }
+  
+  // Check if we need customer information
+  if (!session.customer_name || !session.customer_address) {
+    if (!session.customer_name) {
+      await supabase
+        .from('bot_sessions')
+        .update({ stage: 'collecting_name' })
+        .eq('messenger_psid', senderId)
+      await sendTextMessage(senderId, "Please provide your name for the order:")
+      return
+    }
+    if (!session.customer_address) {
+      await supabase
+        .from('bot_sessions')
+        .update({ stage: 'collecting_address' })
+        .eq('messenger_psid', senderId)
+      await sendTextMessage(senderId, "Please provide your block and lot number (e.g., Block 5, Lot 12):")
+      return
+    }
   }
   
   try {
@@ -378,11 +487,11 @@ async function checkout(senderId: string, session: any) {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        customer_name: 'Messenger Customer',
+        customer_name: session.customer_name,
         total_amount: total,
         status: 'active',
         table_id: null,
-        staff_notes: 'Order placed via Messenger'
+        staff_notes: `Order placed via Messenger - Address: ${session.customer_address}`
       })
       .select()
       .single()
@@ -427,11 +536,19 @@ async function checkout(senderId: string, session: any) {
     
     let message = `✅ *Order Placed Successfully!*\n\n`
     message += `Order #${order.id}\n`
+    message += `Customer: ${session.customer_name}\n`
+    message += `Address: ${session.customer_address}\n`
     message += `Total: ₱${total.toFixed(2)}\n\n`
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
     
-    await sendQuickReplies(senderId, message, defaultQuickReplies())
+    const quickReplies = [
+      { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
+      { content_type: 'text', title: '🛒 View Cart', payload: 'cart' },
+      { content_type: 'text', title: '🖨️ Print Receipt', payload: 'print_receipt' }
+    ]
+    
+    await sendQuickReplies(senderId, message, quickReplies)
     
   } catch (error) {
     console.error('Checkout error:', error)

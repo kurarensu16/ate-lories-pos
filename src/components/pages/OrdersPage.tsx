@@ -107,6 +107,140 @@ export const OrdersPage: React.FC = () => {
     setShowOrderDetails(true)
   }
 
+  const handlePrintReceipt = (order: OrderWithDetails) => {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    
+    if (!printWindow) {
+      alert('Please allow popups to print the receipt')
+      return
+    }
+
+    // Generate receipt HTML
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Receipt - Order #${order.id.slice(-8)}</title>
+        <style>
+          body { 
+            font-family: 'Courier New', monospace; 
+            margin: 20px; 
+            line-height: 1.4;
+            color: #000;
+          }
+          .header { 
+            text-align: center; 
+            border-bottom: 2px solid #000; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px;
+          }
+          .order-info { 
+            margin-bottom: 20px; 
+          }
+          .items-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px;
+          }
+          .items-table th, .items-table td { 
+            border: 1px solid #000; 
+            padding: 8px; 
+            text-align: left;
+          }
+          .items-table th { 
+            background-color: #f0f0f0; 
+            font-weight: bold;
+          }
+          .total { 
+            text-align: right; 
+            font-weight: bold; 
+            font-size: 1.2em; 
+            margin-top: 10px;
+            border-top: 2px solid #000;
+            padding-top: 10px;
+          }
+          .footer { 
+            text-align: center; 
+            margin-top: 30px; 
+            font-size: 0.9em;
+          }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>ATE LORIES POS</h1>
+          <p>Order Receipt</p>
+        </div>
+        
+        <div class="order-info">
+          <p><strong>Order #:</strong> ${order.id.slice(-8)}</p>
+          <p><strong>Customer:</strong> ${order.customer_name || 'Walk-in Customer'}</p>
+          <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+          <p><strong>Status:</strong> ${order.status.toUpperCase()}</p>
+          ${order.staff_notes ? `<p><strong>Notes:</strong> ${order.staff_notes}</p>` : ''}
+        </div>
+        
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${order.order_items.map(item => `
+              <tr>
+                <td>${item.menu_items.name}${item.special_instructions ? `<br><small>Note: ${item.special_instructions}</small>` : ''}</td>
+                <td>${item.quantity}</td>
+                <td>₱${item.unit_price.toFixed(2)}</td>
+                <td>₱${(item.quantity * item.unit_price).toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="total">
+          <p>TOTAL: ₱${order.total_amount.toFixed(2)}</p>
+        </div>
+        
+        ${order.payments.length > 0 ? `
+          <div style="margin-top: 20px;">
+            <h3>Payments:</h3>
+            ${order.payments.map(payment => `
+              <p>${payment.method}: ₱${payment.amount.toFixed(2)} (${payment.status})</p>
+            `).join('')}
+          </div>
+        ` : ''}
+        
+        <div class="footer">
+          <p>Thank you for your order!</p>
+          <p>Keep this receipt for your records.</p>
+        </div>
+        
+        <div class="no-print" style="margin-top: 20px; text-align: center;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print Receipt</button>
+          <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">Close</button>
+        </div>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(receiptHTML)
+    printWindow.document.close()
+    
+    // Auto-print after a short delay
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -317,6 +451,11 @@ export const OrdersPage: React.FC = () => {
                           <p className="text-lg font-semibold text-gray-900">
                             {order.customer_name || 'Walk-in Customer'}
                           </p>
+                          {order.customer_address && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              📍 {order.customer_address}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Created</p>
@@ -520,6 +659,15 @@ export const OrdersPage: React.FC = () => {
                   className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md font-medium hover:bg-gray-400 transition-colors"
                 >
                   Close
+                </button>
+                <button
+                  onClick={() => handlePrintReceipt(selectedOrder)}
+                  className="bg-purple-600 text-white py-2 px-4 rounded-md font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>Print Receipt</span>
                 </button>
                 {getStatusActions(selectedOrder)}
               </div>
