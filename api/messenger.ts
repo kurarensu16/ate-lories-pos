@@ -200,11 +200,7 @@ async function handleTextMessage(senderId: string, text: string) {
       return
     }
     
-    await sendQuickReplies(senderId, "Perfect! Now you can place your order:", [
-      { content_type: 'text', title: '🛒 Place Order', payload: 'PLACE_ORDER' },
-      { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
-      { content_type: 'text', title: '🛒 View Cart', payload: 'cart' }
-    ])
+    await sendTextMessage(senderId, "Perfect! Now you can place your order. Reply with 'place order' to complete your order.")
     return
   }
   
@@ -641,13 +637,7 @@ async function checkout(senderId: string, session: any) {
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
     
-    const quickReplies = [
-      { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
-      { content_type: 'text', title: '🛒 View Cart', payload: 'cart' },
-      { content_type: 'text', title: '🆕 New Order', payload: 'menu' }
-    ]
-    
-    await sendQuickReplies(senderId, message, quickReplies)
+    await sendTextMessage(senderId, message)
     
   } catch (error) {
     console.error('Checkout error:', error)
@@ -796,13 +786,7 @@ async function placeOrder(senderId: string, session: any) {
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
     
-    const quickReplies = [
-      { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
-      { content_type: 'text', title: '🛒 View Cart', payload: 'cart' },
-      { content_type: 'text', title: '🆕 New Order', payload: 'menu' }
-    ]
-    
-    await sendQuickReplies(senderId, message, quickReplies)
+    await sendTextMessage(senderId, message)
     
   } catch (error) {
     console.error('Place order error:', error)
