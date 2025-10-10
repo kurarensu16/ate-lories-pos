@@ -146,15 +146,19 @@ async function handleTextMessage(senderId: string, text: string) {
   // Get or create session
   const session = await getOrCreateSession(senderId)
   
-  console.log('Text message handler - Session stage:', session.stage, 'Customer name:', session.customer_name, 'Customer address:', session.customer_address)
+  const sessionData = session.session_data || {}
+  console.log('Text message handler - Session stage:', session.stage, 'Customer name:', sessionData.customer_name, 'Customer address:', sessionData.customer_address)
   
   // Check if we're collecting customer information
   if (session.stage === 'collecting_name') {
     const { error } = await supabase
       .from('bot_sessions')
       .update({ 
-        customer_name: text.trim(),
-        stage: 'collecting_address'
+        stage: 'collecting_address',
+        session_data: {
+          ...session.session_data,
+          customer_name: text.trim()
+        }
       })
       .eq('messenger_psid', senderId)
     
@@ -172,8 +176,11 @@ async function handleTextMessage(senderId: string, text: string) {
     const { error } = await supabase
       .from('bot_sessions')
       .update({ 
-        customer_address: text.trim(),
-        stage: 'idle'
+        stage: 'idle',
+        session_data: {
+          ...session.session_data,
+          customer_address: text.trim()
+        }
       })
       .eq('messenger_psid', senderId)
     
@@ -262,7 +269,8 @@ async function getOrCreateSession(senderId: string) {
     .insert({
       messenger_psid: senderId,
       stage: 'idle',
-      cart_items: []
+      cart_items: [],
+      session_data: {}
     })
     .select()
     .single()
@@ -408,6 +416,14 @@ async function clearCart(senderId: string, session: any) {
 async function printReceipt(senderId: string, session: any) {
   try {
     // Get the most recent order for this customer
+    const sessionData = session.session_data || {}
+    const customerName = sessionData.customer_name
+    
+    if (!customerName) {
+      await sendTextMessage(senderId, "No customer information found. Please place an order first.")
+      return
+    }
+    
     const { data: orders, error } = await supabase
       .from('orders')
       .select(`
@@ -419,7 +435,7 @@ async function printReceipt(senderId: string, session: any) {
           menu_items (name)
         )
       `)
-      .eq('customer_name', session.customer_name)
+      .eq('customer_name', customerName)
       .order('created_at', { ascending: false })
       .limit(1)
     
@@ -486,8 +502,12 @@ async function checkout(senderId: string, session: any) {
   }
   
   // Check if we need customer information
-  if (!freshSession.customer_name || !freshSession.customer_address) {
-    if (!freshSession.customer_name) {
+  const sessionData = freshSession.session_data || {}
+  const customerName = sessionData.customer_name
+  const customerAddress = sessionData.customer_address
+  
+  if (!customerName || !customerAddress) {
+    if (!customerName) {
       const { error } = await supabase
         .from('bot_sessions')
         .update({ stage: 'collecting_name' })
@@ -502,7 +522,7 @@ async function checkout(senderId: string, session: any) {
       await sendTextMessage(senderId, "Please provide your name for the order:")
       return
     }
-    if (!freshSession.customer_address) {
+    if (!customerAddress) {
       const { error } = await supabase
         .from('bot_sessions')
         .update({ stage: 'collecting_address' })
@@ -527,11 +547,11 @@ async function checkout(senderId: string, session: any) {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        customer_name: freshSession.customer_name,
+        customer_name: customerName,
         total_amount: total,
         status: 'active',
         table_id: null,
-        staff_notes: `Order placed via Messenger - Address: ${freshSession.customer_address}`
+        staff_notes: `Order placed via Messenger - Address: ${customerAddress}`
       })
       .select()
       .single()
@@ -576,8 +596,8 @@ async function checkout(senderId: string, session: any) {
     
     let message = `✅ *Order Placed Successfully!*\n\n`
     message += `Order #${order.id}\n`
-    message += `Customer: ${freshSession.customer_name}\n`
-    message += `Address: ${freshSession.customer_address}\n`
+    message += `Customer: ${customerName}\n`
+    message += `Address: ${customerAddress}\n`
     message += `Total: ₱${total.toFixed(2)}\n\n`
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
