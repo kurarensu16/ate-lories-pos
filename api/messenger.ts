@@ -214,6 +214,8 @@ async function handleTextMessage(senderId: string, text: string) {
     await showCart(senderId, session)
   } else if (text === 'checkout' || text === '3') {
     await checkout(senderId, session)
+  } else if (text === 'place order' || text === 'placeorder') {
+    await placeOrder(senderId, session)
   } else if (text.startsWith('add ')) {
     const itemName = text.replace('add ', '').trim()
     await addToCart(senderId, session, itemName)
@@ -243,6 +245,7 @@ async function handlePostback(senderId: string, payload: string) {
   } else if (payload === 'CHECKOUT') {
     await checkout(senderId, session)
   } else if (payload === 'PLACE_ORDER') {
+    console.log('PLACE_ORDER payload received')
     await placeOrder(senderId, session)
   } else if (payload === 'MENU') {
     await showTodaysMenu(senderId)
@@ -653,7 +656,9 @@ async function checkout(senderId: string, session: any) {
 }
 
 async function placeOrder(senderId: string, session: any) {
+  console.log('PLACE_ORDER called for senderId:', senderId)
   const cartItems = session.cart_items || []
+  console.log('Cart items:', cartItems)
   
   if (cartItems.length === 0) {
     await sendTextMessage(senderId, "Your cart is empty. Reply with 'menu' to see today's items.")
