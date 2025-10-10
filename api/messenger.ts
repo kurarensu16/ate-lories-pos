@@ -201,7 +201,9 @@ async function handleTextMessage(senderId: string, text: string) {
       return
     }
     
-    await sendTextMessage(senderId, "Perfect! Now you can place your order. Reply with 'place order' to complete your order.")
+    await sendQuickReplies(senderId, "Perfect! Now you can place your order:", [
+      { content_type: 'text', title: '🛒 Place Order', payload: 'PLACE_ORDER' }
+    ])
     return
   }
   
