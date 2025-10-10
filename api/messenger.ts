@@ -36,7 +36,6 @@ async function setupMessengerProfile() {
           { type: 'postback', title: "Today's Menu", payload: 'MENU' },
           { type: 'postback', title: 'View Cart', payload: 'VIEW_CART' },
           { type: 'postback', title: 'Checkout', payload: 'CHECKOUT' },
-          { type: 'postback', title: 'Place Order', payload: 'PLACE_ORDER' },
         ],
       },
     ],
