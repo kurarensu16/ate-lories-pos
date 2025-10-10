@@ -146,9 +146,11 @@ async function handleTextMessage(senderId: string, text: string) {
   // Get or create session
   const session = await getOrCreateSession(senderId)
   
+  console.log('Text message handler - Session stage:', session.stage, 'Customer name:', session.customer_name, 'Customer address:', session.customer_address)
+  
   // Check if we're collecting customer information
   if (session.stage === 'collecting_name') {
-    await supabase
+    const { error } = await supabase
       .from('bot_sessions')
       .update({ 
         customer_name: text.trim(),
@@ -156,18 +158,30 @@ async function handleTextMessage(senderId: string, text: string) {
       })
       .eq('messenger_psid', senderId)
     
+    if (error) {
+      console.error('Error updating customer name:', error)
+      await sendTextMessage(senderId, "Sorry, there was an error. Please try again.")
+      return
+    }
+    
     await sendTextMessage(senderId, "Great! Now please provide your block and lot number (e.g., Block 5, Lot 12):")
     return
   }
   
   if (session.stage === 'collecting_address') {
-    await supabase
+    const { error } = await supabase
       .from('bot_sessions')
       .update({ 
         customer_address: text.trim(),
         stage: 'idle'
       })
       .eq('messenger_psid', senderId)
+    
+    if (error) {
+      console.error('Error updating customer address:', error)
+      await sendTextMessage(senderId, "Sorry, there was an error. Please try again.")
+      return
+    }
     
     await sendTextMessage(senderId, "Perfect! Now you can proceed with checkout. Reply with 'checkout' to place your order.")
     return
@@ -459,21 +473,47 @@ async function checkout(senderId: string, session: any) {
     return
   }
   
+  // Get fresh session data to ensure we have the latest customer info
+  const { data: freshSession } = await supabase
+    .from('bot_sessions')
+    .select('*')
+    .eq('messenger_psid', senderId)
+    .single()
+  
+  if (!freshSession) {
+    await sendTextMessage(senderId, "Session error. Please try again.")
+    return
+  }
+  
   // Check if we need customer information
-  if (!session.customer_name || !session.customer_address) {
-    if (!session.customer_name) {
-      await supabase
+  if (!freshSession.customer_name || !freshSession.customer_address) {
+    if (!freshSession.customer_name) {
+      const { error } = await supabase
         .from('bot_sessions')
         .update({ stage: 'collecting_name' })
         .eq('messenger_psid', senderId)
+      
+      if (error) {
+        console.error('Error setting collecting_name stage:', error)
+        await sendTextMessage(senderId, "Sorry, there was an error. Please try again.")
+        return
+      }
+      
       await sendTextMessage(senderId, "Please provide your name for the order:")
       return
     }
-    if (!session.customer_address) {
-      await supabase
+    if (!freshSession.customer_address) {
+      const { error } = await supabase
         .from('bot_sessions')
         .update({ stage: 'collecting_address' })
         .eq('messenger_psid', senderId)
+      
+      if (error) {
+        console.error('Error setting collecting_address stage:', error)
+        await sendTextMessage(senderId, "Sorry, there was an error. Please try again.")
+        return
+      }
+      
       await sendTextMessage(senderId, "Please provide your block and lot number (e.g., Block 5, Lot 12):")
       return
     }
@@ -487,11 +527,11 @@ async function checkout(senderId: string, session: any) {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        customer_name: session.customer_name,
+        customer_name: freshSession.customer_name,
         total_amount: total,
         status: 'active',
         table_id: null,
-        staff_notes: `Order placed via Messenger - Address: ${session.customer_address}`
+        staff_notes: `Order placed via Messenger - Address: ${freshSession.customer_address}`
       })
       .select()
       .single()
@@ -536,8 +576,8 @@ async function checkout(senderId: string, session: any) {
     
     let message = `✅ *Order Placed Successfully!*\n\n`
     message += `Order #${order.id}\n`
-    message += `Customer: ${session.customer_name}\n`
-    message += `Address: ${session.customer_address}\n`
+    message += `Customer: ${freshSession.customer_name}\n`
+    message += `Address: ${freshSession.customer_address}\n`
     message += `Total: ₱${total.toFixed(2)}\n\n`
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
