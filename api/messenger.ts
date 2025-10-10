@@ -355,7 +355,7 @@ async function showCart(senderId: string, session: any) {
   
   message += `\n*Total: ₱${total.toFixed(2)}*\n\n`
   await sendQuickReplies(senderId, message, [
-    { content_type: 'text', title: 'Place Order', payload: 'PLACE_ORDER' },
+    { content_type: 'text', title: 'Checkout', payload: 'CHECKOUT' },
     { content_type: 'text', title: 'Clear Cart', payload: 'CLEAR_CART' },
     { content_type: 'text', title: "Today's Menu", payload: 'MENU' },
   ])
