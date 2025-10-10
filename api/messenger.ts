@@ -201,7 +201,7 @@ async function handleTextMessage(senderId: string, text: string) {
     }
     
     await sendQuickReplies(senderId, "Perfect! Now you can place your order:", [
-      { content_type: 'text', title: '🛒 Place Order', payload: 'CHECKOUT' },
+      { content_type: 'text', title: '🛒 Place Order', payload: 'PLACE_ORDER' },
       { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
       { content_type: 'text', title: '🛒 View Cart', payload: 'cart' }
     ])
@@ -242,6 +242,8 @@ async function handlePostback(senderId: string, payload: string) {
     await showCart(senderId, session)
   } else if (payload === 'CHECKOUT') {
     await checkout(senderId, session)
+  } else if (payload === 'PLACE_ORDER') {
+    await placeOrder(senderId, session)
   } else if (payload === 'MENU') {
     await showTodaysMenu(senderId)
   } else if (payload === 'HELP') {
@@ -646,6 +648,122 @@ async function checkout(senderId: string, session: any) {
     
   } catch (error) {
     console.error('Checkout error:', error)
+    await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
+  }
+}
+
+async function placeOrder(senderId: string, session: any) {
+  const cartItems = session.cart_items || []
+  
+  if (cartItems.length === 0) {
+    await sendTextMessage(senderId, "Your cart is empty. Reply with 'menu' to see today's items.")
+    return
+  }
+  
+  // Get fresh session data to ensure we have the latest customer info
+  const { data: freshSession } = await supabase
+    .from('bot_sessions')
+    .select('*')
+    .eq('messenger_psid', senderId)
+    .single()
+  
+  if (!freshSession) {
+    await sendTextMessage(senderId, "Session error. Please try again.")
+    return
+  }
+  
+  // Parse customer info from cart_items
+  let customerName = 'Messenger Customer'
+  let customerAddress = 'Not provided'
+  
+  const freshCartItems = freshSession.cart_items || []
+  const customerNameItem = freshCartItems.find((item: any) => item.type === 'customer_name')
+  const customerAddressItem = freshCartItems.find((item: any) => item.type === 'customer_address')
+  
+  if (customerNameItem) {
+    customerName = customerNameItem.value
+  }
+  if (customerAddressItem) {
+    customerAddress = customerAddressItem.value
+  }
+  
+  try {
+    // Calculate total (exclude customer info items)
+    const menuItems = freshCartItems.filter((item: any) => item.type !== 'customer_name' && item.type !== 'customer_address')
+    const total = menuItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+    
+    // Create order with customer information
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_name: customerName,
+        total_amount: total,
+        status: 'active',
+        table_id: null,
+        staff_notes: `Order placed via Messenger - Address: ${customerAddress}`
+      })
+      .select()
+      .single()
+    
+    if (orderError) {
+      console.error('Order creation error:', orderError)
+      await sendTextMessage(senderId, `Order error: ${orderError.message}. Please try again.`)
+      return
+    }
+    
+    if (!order) {
+      await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
+      return
+    }
+    
+    // Create order items (only for menu items, not customer info)
+    const orderItems = menuItems.map((item: any) => ({
+      order_id: order.id,
+      menu_item_id: item.id,
+      quantity: item.quantity,
+      unit_price: item.price,
+      special_instructions: null
+    }))
+    
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems)
+    
+    if (itemsError) {
+      console.error('Order items creation error:', itemsError)
+      // Clean up the order if items failed
+      await supabase.from('orders').delete().eq('id', order.id)
+      await sendTextMessage(senderId, `Order error: ${itemsError.message}. Please try again.`)
+      return
+    }
+    
+    // Clear cart and reset customer info for next order
+    await supabase
+      .from('bot_sessions')
+      .update({ 
+        cart_items: [],
+        stage: 'idle'
+      })
+      .eq('messenger_psid', senderId)
+    
+    let message = `✅ *Order Placed Successfully!*\n\n`
+    message += `Order #${order.id}\n`
+    message += `Customer: ${customerName}\n`
+    message += `Address: ${customerAddress}\n`
+    message += `Total: ₱${total.toFixed(2)}\n\n`
+    message += `Your order is being prepared. You'll receive updates soon!\n\n`
+    message += `Reply with 'menu' to place another order.`
+    
+    const quickReplies = [
+      { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
+      { content_type: 'text', title: '🛒 View Cart', payload: 'cart' },
+      { content_type: 'text', title: '🆕 New Order', payload: 'menu' }
+    ]
+    
+    await sendQuickReplies(senderId, message, quickReplies)
+    
+  } catch (error) {
+    console.error('Place order error:', error)
     await sendTextMessage(senderId, "Sorry, there was an error placing your order. Please try again.")
   }
 }
