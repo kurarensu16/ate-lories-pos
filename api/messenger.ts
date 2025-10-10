@@ -521,9 +521,9 @@ async function checkout(senderId: string, session: any) {
   let customerName = 'Messenger Customer'
   let customerAddress = 'Not provided'
   
-  const cartItems = freshSession.cart_items || []
-  const customerNameItem = cartItems.find((item: any) => item.type === 'customer_name')
-  const customerAddressItem = cartItems.find((item: any) => item.type === 'customer_address')
+  const freshCartItems = freshSession.cart_items || []
+  const customerNameItem = freshCartItems.find((item: any) => item.type === 'customer_name')
+  const customerAddressItem = freshCartItems.find((item: any) => item.type === 'customer_address')
   
   if (customerNameItem) {
     customerName = customerNameItem.value
@@ -569,7 +569,7 @@ async function checkout(senderId: string, session: any) {
   
   try {
     // Calculate total (exclude customer info items)
-    const menuItems = cartItems.filter((item: any) => item.type !== 'customer_name' && item.type !== 'customer_address')
+    const menuItems = freshCartItems.filter((item: any) => item.type !== 'customer_name' && item.type !== 'customer_address')
     const total = menuItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
     
     // Create order with customer information
