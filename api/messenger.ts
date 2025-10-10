@@ -200,7 +200,11 @@ async function handleTextMessage(senderId: string, text: string) {
       return
     }
     
-    await sendTextMessage(senderId, "Perfect! Now you can proceed with checkout. Reply with 'checkout' to place your order.")
+    await sendQuickReplies(senderId, "Perfect! Now you can place your order:", [
+      { content_type: 'text', title: '🛒 Place Order', payload: 'CHECKOUT' },
+      { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
+      { content_type: 'text', title: '🛒 View Cart', payload: 'cart' }
+    ])
     return
   }
   
@@ -244,8 +248,6 @@ async function handlePostback(senderId: string, payload: string) {
     await sendWelcomeMessage(senderId)
   } else if (payload === 'CLEAR_CART') {
     await clearCart(senderId, session)
-  } else if (payload === 'print_receipt') {
-    await printReceipt(senderId, session)
   }
 }
 
@@ -637,7 +639,7 @@ async function checkout(senderId: string, session: any) {
     const quickReplies = [
       { content_type: 'text', title: '📋 View Menu', payload: 'menu' },
       { content_type: 'text', title: '🛒 View Cart', payload: 'cart' },
-      { content_type: 'text', title: '🖨️ Print Receipt', payload: 'print_receipt' }
+      { content_type: 'text', title: '🆕 New Order', payload: 'menu' }
     ]
     
     await sendQuickReplies(senderId, message, quickReplies)
