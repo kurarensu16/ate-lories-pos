@@ -36,6 +36,8 @@ async function setupMessengerProfile() {
           { type: 'postback', title: "Today's Menu", payload: 'MENU' },
           { type: 'postback', title: 'View Cart', payload: 'VIEW_CART' },
           { type: 'postback', title: 'Checkout', payload: 'CHECKOUT' },
+          { type: 'postback', title: 'Place Order', payload: 'PLACE_ORDER' },
+          { type: 'postback', title: 'Help', payload: 'HELP' },
         ],
       },
     ],
@@ -329,7 +331,6 @@ async function showTodaysMenu(senderId: string) {
 
   await sendQuickReplies(senderId, 'Select an action:', [
     { content_type: 'text', title: 'Cart', payload: 'VIEW_CART' },
-    { content_type: 'text', title: 'Place Order', payload: 'PLACE_ORDER' },
     { content_type: 'text', title: 'Help', payload: 'HELP' },
   ])
 }
