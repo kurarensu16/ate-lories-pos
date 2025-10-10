@@ -272,21 +272,22 @@ export const MenuPage: React.FC = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex justify-between items-center">
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex flex-wrap gap-1 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => handleFilterChange('today')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
               filter === 'today'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Today's Menu ({menuItems.filter(item => item.is_today_menu).length})
+            <span className="hidden sm:inline">Today's Menu</span>
+            <span className="sm:hidden">Today</span> ({menuItems.filter(item => item.is_today_menu).length})
           </button>
           <button
             onClick={() => handleFilterChange('all')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
               filter === 'all'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -296,7 +297,7 @@ export const MenuPage: React.FC = () => {
           </button>
           <button
             onClick={() => handleFilterChange('available')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
               filter === 'available'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -306,7 +307,7 @@ export const MenuPage: React.FC = () => {
           </button>
           <button
             onClick={() => handleFilterChange('unavailable')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
               filter === 'unavailable'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -318,53 +319,55 @@ export const MenuPage: React.FC = () => {
 
         {/* Bulk Actions */}
         {showBulkActions && (
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-gray-600">
               {selectedItems.size} selected
             </span>
-            {filter !== 'today' && (
-              <>
+            <div className="flex flex-wrap gap-2">
+              {filter !== 'today' && (
+                <>
+                  <button
+                    onClick={handleBulkEnable}
+                    className="bg-green-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-green-700"
+                  >
+                    Enable All
+                  </button>
+                  <button
+                    onClick={handleBulkDisable}
+                    className="bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-700"
+                  >
+                    Disable All
+                  </button>
+                </>
+              )}
+              {filter === 'today' && (
+                <>
+                  <button
+                    onClick={handleBulkRemoveFromToday}
+                    className="bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-700"
+                  >
+                    Remove from Today
+                  </button>
+                </>
+              )}
+              {filter !== 'today' && (
                 <button
-                  onClick={handleBulkEnable}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                  onClick={handleBulkAddToToday}
+                  className="bg-blue-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-blue-700"
                 >
-                  Enable All
+                  Add to Today
                 </button>
-                <button
-                  onClick={handleBulkDisable}
-                  className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                >
-                  Disable All
-                </button>
-              </>
-            )}
-            {filter === 'today' && (
-              <>
-                <button
-                  onClick={handleBulkRemoveFromToday}
-                  className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                >
-                  Remove from Today
-                </button>
-              </>
-            )}
-            {filter !== 'today' && (
+              )}
               <button
-                onClick={handleBulkAddToToday}
-                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                onClick={() => {
+                  setSelectedItems(new Set())
+                  setShowBulkActions(false)
+                }}
+                className="bg-gray-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-600"
               >
-                Add to Today
+                Cancel
               </button>
-            )}
-            <button
-              onClick={() => {
-                setSelectedItems(new Set())
-                setShowBulkActions(false)
-              }}
-              className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
-            >
-              Cancel
-            </button>
+            </div>
           </div>
         )}
       </div>
@@ -427,11 +430,11 @@ export const MenuPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 sm:p-6">
               {filteredItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`border rounded-lg p-4 transition-all ${
+                  className={`border rounded-lg p-3 sm:p-4 transition-all ${
                     item.is_available 
                       ? 'border-gray-200 bg-white hover:shadow-md' 
                       : 'border-red-200 bg-red-50 opacity-75'
@@ -439,26 +442,26 @@ export const MenuPage: React.FC = () => {
                 >
                   {/* Header with checkbox and status */}
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                       <input
                         type="checkbox"
                         checked={selectedItems.has(item.id)}
                         onChange={() => handleSelectItem(item.id)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
                       />
-                      <h4 className={`font-semibold text-lg ${
+                      <h4 className={`font-semibold text-base sm:text-lg truncate ${
                         item.is_available ? 'text-gray-900' : 'text-gray-500 line-through'
                       }`}>
                         {item.name}
                       </h4>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                       {!item.is_available && (
-                        <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                        <div className="bg-red-500 text-white text-xs px-1 sm:px-2 py-1 rounded-full font-medium">
                           DISABLED
                         </div>
                       )}
-                      <span className={`px-2 py-1 text-xs rounded-full ${
+                      <span className={`px-1 sm:px-2 py-1 text-xs rounded-full ${
                         item.is_available 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
@@ -477,12 +480,12 @@ export const MenuPage: React.FC = () => {
                   )}
 
                   <div className="flex justify-between items-center mb-4">
-                    <span className={`font-bold text-lg ${
+                    <span className={`font-bold text-base sm:text-lg ${
                       item.is_available ? 'text-green-600' : 'text-gray-400'
                     }`}>
                       {formatCurrency(item.price)}
                     </span>
-                    <span className={`text-xs px-2 py-1 rounded ${
+                    <span className={`text-xs px-1 sm:px-2 py-1 rounded truncate max-w-[120px] sm:max-w-none ${
                       item.is_available 
                         ? 'text-gray-500 bg-gray-100' 
                         : 'text-gray-400 bg-gray-200'
@@ -491,17 +494,17 @@ export const MenuPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="flex space-x-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleEdit(item)}
-                      className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
+                      className="bg-blue-100 text-blue-700 py-2 px-2 sm:px-3 rounded text-xs sm:text-sm font-medium hover:bg-blue-200 transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleToggleAvailability(item)}
                       disabled={toggleAvailabilityMutation.isPending}
-                      className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={`py-2 px-2 sm:px-3 rounded text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         item.is_available
                           ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                           : 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -515,7 +518,7 @@ export const MenuPage: React.FC = () => {
                     <button
                       onClick={() => handleToggleTodayMenu(item)}
                       disabled={toggleTodayMenuMutation.isPending}
-                      className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={`col-span-2 py-2 px-2 sm:px-3 rounded text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         item.is_today_menu
                           ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                           : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
@@ -529,7 +532,7 @@ export const MenuPage: React.FC = () => {
                     <button
                       onClick={() => handleDelete(item.id)}
                       disabled={deleteMutation.isPending}
-                      className="flex-1 bg-red-100 text-red-700 py-2 px-3 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="col-span-2 bg-red-100 text-red-700 py-2 px-2 sm:px-3 rounded text-xs sm:text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                     </button>
