@@ -152,35 +152,20 @@ async function handleTextMessage(senderId: string, text: string) {
   // Check if we're collecting customer information
   if (session.stage === 'collecting_name') {
     console.log('Updating customer name:', text.trim())
-    console.log('Current session_data:', session.session_data)
     
-    // Try to update just the stage first, then the session_data
-    const { error: stageError } = await supabase
-      .from('bot_sessions')
-      .update({ stage: 'collecting_address' })
-      .eq('messenger_psid', senderId)
-    
-    if (stageError) {
-      console.error('Error updating stage:', stageError)
-      await sendTextMessage(senderId, `Sorry, there was an error: ${stageError.message}. Please try again.`)
-      return
-    }
-    
-    // Now try to update session_data
-    const currentSessionData = session.session_data || {}
-    const { error: dataError } = await supabase
+    // Store customer name in a simple way - use staff_notes field temporarily
+    const { error } = await supabase
       .from('bot_sessions')
       .update({ 
-        session_data: {
-          ...currentSessionData,
-          customer_name: text.trim()
-        }
+        stage: 'collecting_address',
+        staff_notes: `customer_name:${text.trim()}`
       })
       .eq('messenger_psid', senderId)
     
-    if (dataError) {
-      console.error('Error updating session_data:', dataError)
-      // Don't fail here, just log the error and continue
+    if (error) {
+      console.error('Error updating customer name:', error)
+      await sendTextMessage(senderId, `Sorry, there was an error: ${error.message}. Please try again.`)
+      return
     }
     
     await sendTextMessage(senderId, "Great! Now please provide your block and lot number (e.g., Block 5, Lot 12):")
@@ -189,35 +174,21 @@ async function handleTextMessage(senderId: string, text: string) {
   
   if (session.stage === 'collecting_address') {
     console.log('Updating customer address:', text.trim())
-    console.log('Current session_data:', session.session_data)
     
-    // Try to update just the stage first, then the session_data
-    const { error: stageError } = await supabase
-      .from('bot_sessions')
-      .update({ stage: 'idle' })
-      .eq('messenger_psid', senderId)
-    
-    if (stageError) {
-      console.error('Error updating stage:', stageError)
-      await sendTextMessage(senderId, `Sorry, there was an error: ${stageError.message}. Please try again.`)
-      return
-    }
-    
-    // Now try to update session_data
-    const currentSessionData = session.session_data || {}
-    const { error: dataError } = await supabase
+    // Get the customer name from staff_notes and add address
+    const customerName = session.staff_notes?.replace('customer_name:', '') || 'Unknown'
+    const { error } = await supabase
       .from('bot_sessions')
       .update({ 
-        session_data: {
-          ...currentSessionData,
-          customer_address: text.trim()
-        }
+        stage: 'idle',
+        staff_notes: `customer_name:${customerName}|customer_address:${text.trim()}`
       })
       .eq('messenger_psid', senderId)
     
-    if (dataError) {
-      console.error('Error updating session_data:', dataError)
-      // Don't fail here, just log the error and continue
+    if (error) {
+      console.error('Error updating customer address:', error)
+      await sendTextMessage(senderId, `Sorry, there was an error: ${error.message}. Please try again.`)
+      return
     }
     
     await sendTextMessage(senderId, "Perfect! Now you can proceed with checkout. Reply with 'checkout' to place your order.")
@@ -532,13 +503,27 @@ async function checkout(senderId: string, session: any) {
   }
   
   // Check if we need customer information
-  // For now, let's use a simpler approach and store customer info in memory
-  // We'll ask for customer info each time during checkout
   console.log('Checkout - Fresh session:', freshSession)
   
-  // Always ask for customer information during checkout for now
-  if (freshSession.stage !== 'collecting_name' && freshSession.stage !== 'collecting_address') {
-    console.log('Setting stage to collecting_name')
+  // Parse customer info from staff_notes if it exists
+  let customerName = 'Messenger Customer'
+  let customerAddress = 'Not provided'
+  
+  if (freshSession.staff_notes && freshSession.staff_notes.includes('customer_name:')) {
+    const parts = freshSession.staff_notes.split('|')
+    for (const part of parts) {
+      if (part.startsWith('customer_name:')) {
+        customerName = part.replace('customer_name:', '')
+      }
+      if (part.startsWith('customer_address:')) {
+        customerAddress = part.replace('customer_address:', '')
+      }
+    }
+  }
+  
+  // Only ask for customer info if we don't have it yet
+  if (!freshSession.staff_notes || !freshSession.staff_notes.includes('customer_name:')) {
+    console.log('No customer info found, asking for name')
     const { error } = await supabase
       .from('bot_sessions')
       .update({ stage: 'collecting_name' })
@@ -554,19 +539,36 @@ async function checkout(senderId: string, session: any) {
     return
   }
   
+  if (!freshSession.staff_notes || !freshSession.staff_notes.includes('customer_address:')) {
+    console.log('No customer address found, asking for address')
+    const { error } = await supabase
+      .from('bot_sessions')
+      .update({ stage: 'collecting_address' })
+      .eq('messenger_psid', senderId)
+    
+    if (error) {
+      console.error('Error setting collecting_address stage:', error)
+      await sendTextMessage(senderId, `Sorry, there was an error: ${error.message}. Please try again.`)
+      return
+    }
+    
+    await sendTextMessage(senderId, "Please provide your block and lot number (e.g., Block 5, Lot 12):")
+    return
+  }
+  
   try {
     // Calculate total
     const total = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
     
-    // For now, let's create the order with basic info and ask for customer details separately
+    // Create order with customer information
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        customer_name: 'Messenger Customer',
+        customer_name: customerName,
         total_amount: total,
         status: 'active',
         table_id: null,
-        staff_notes: 'Order placed via Messenger - Customer details to be collected'
+        staff_notes: `Order placed via Messenger - Address: ${customerAddress}`
       })
       .select()
       .single()
@@ -603,14 +605,20 @@ async function checkout(senderId: string, session: any) {
       return
     }
     
-    // Clear cart
+    // Clear cart and reset customer info for next order
     await supabase
       .from('bot_sessions')
-      .update({ cart_items: [] })
+      .update({ 
+        cart_items: [],
+        staff_notes: null,
+        stage: 'idle'
+      })
       .eq('messenger_psid', senderId)
     
     let message = `✅ *Order Placed Successfully!*\n\n`
     message += `Order #${order.id}\n`
+    message += `Customer: ${customerName}\n`
+    message += `Address: ${customerAddress}\n`
     message += `Total: ₱${total.toFixed(2)}\n\n`
     message += `Your order is being prepared. You'll receive updates soon!\n\n`
     message += `Reply with 'menu' to place another order.`
