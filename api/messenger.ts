@@ -153,12 +153,15 @@ async function handleTextMessage(senderId: string, text: string) {
   if (session.stage === 'collecting_name') {
     console.log('Updating customer name:', text.trim())
     
-    // Store customer name in a simple way - use staff_notes field temporarily
+    // Store customer name in cart_items as a special item
+    const customerInfo = { type: 'customer_name', value: text.trim() }
+    const updatedCartItems = [...(session.cart_items || []), customerInfo]
+    
     const { error } = await supabase
       .from('bot_sessions')
       .update({ 
         stage: 'collecting_address',
-        staff_notes: `customer_name:${text.trim()}`
+        cart_items: updatedCartItems
       })
       .eq('messenger_psid', senderId)
     
@@ -175,13 +178,19 @@ async function handleTextMessage(senderId: string, text: string) {
   if (session.stage === 'collecting_address') {
     console.log('Updating customer address:', text.trim())
     
-    // Get the customer name from staff_notes and add address
-    const customerName = session.staff_notes?.replace('customer_name:', '') || 'Unknown'
+    // Get the customer name from cart_items and add address
+    const cartItems = session.cart_items || []
+    const customerNameItem = cartItems.find((item: any) => item.type === 'customer_name')
+    const customerName = customerNameItem?.value || 'Unknown'
+    
+    const customerAddressInfo = { type: 'customer_address', value: text.trim() }
+    const updatedCartItems = [...cartItems, customerAddressInfo]
+    
     const { error } = await supabase
       .from('bot_sessions')
       .update({ 
         stage: 'idle',
-        staff_notes: `customer_name:${customerName}|customer_address:${text.trim()}`
+        cart_items: updatedCartItems
       })
       .eq('messenger_psid', senderId)
     
@@ -323,7 +332,10 @@ async function showTodaysMenu(senderId: string) {
 async function showCart(senderId: string, session: any) {
   const cartItems = session.cart_items || []
   
-  if (cartItems.length === 0) {
+  // Filter out customer info items for display
+  const menuItems = cartItems.filter((item: any) => item.type !== 'customer_name' && item.type !== 'customer_address')
+  
+  if (menuItems.length === 0) {
     await sendQuickReplies(senderId, "Your cart is empty. Choose an option:", defaultQuickReplies())
     return
   }
@@ -331,7 +343,7 @@ async function showCart(senderId: string, session: any) {
   let message = "🛒 *Your Order*\n\n"
   let total = 0
   
-  for (const item of cartItems) {
+  for (const item of menuItems) {
     const subtotal = item.price * item.quantity
     total += subtotal
     message += `${item.name} x${item.quantity} - ₱${subtotal.toFixed(2)}\n`
@@ -505,24 +517,23 @@ async function checkout(senderId: string, session: any) {
   // Check if we need customer information
   console.log('Checkout - Fresh session:', freshSession)
   
-  // Parse customer info from staff_notes if it exists
+  // Parse customer info from cart_items
   let customerName = 'Messenger Customer'
   let customerAddress = 'Not provided'
   
-  if (freshSession.staff_notes && freshSession.staff_notes.includes('customer_name:')) {
-    const parts = freshSession.staff_notes.split('|')
-    for (const part of parts) {
-      if (part.startsWith('customer_name:')) {
-        customerName = part.replace('customer_name:', '')
-      }
-      if (part.startsWith('customer_address:')) {
-        customerAddress = part.replace('customer_address:', '')
-      }
-    }
+  const cartItems = freshSession.cart_items || []
+  const customerNameItem = cartItems.find((item: any) => item.type === 'customer_name')
+  const customerAddressItem = cartItems.find((item: any) => item.type === 'customer_address')
+  
+  if (customerNameItem) {
+    customerName = customerNameItem.value
+  }
+  if (customerAddressItem) {
+    customerAddress = customerAddressItem.value
   }
   
   // Only ask for customer info if we don't have it yet
-  if (!freshSession.staff_notes || !freshSession.staff_notes.includes('customer_name:')) {
+  if (!customerNameItem) {
     console.log('No customer info found, asking for name')
     const { error } = await supabase
       .from('bot_sessions')
@@ -539,7 +550,7 @@ async function checkout(senderId: string, session: any) {
     return
   }
   
-  if (!freshSession.staff_notes || !freshSession.staff_notes.includes('customer_address:')) {
+  if (!customerAddressItem) {
     console.log('No customer address found, asking for address')
     const { error } = await supabase
       .from('bot_sessions')
@@ -557,8 +568,9 @@ async function checkout(senderId: string, session: any) {
   }
   
   try {
-    // Calculate total
-    const total = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+    // Calculate total (exclude customer info items)
+    const menuItems = cartItems.filter((item: any) => item.type !== 'customer_name' && item.type !== 'customer_address')
+    const total = menuItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
     
     // Create order with customer information
     const { data: order, error: orderError } = await supabase
@@ -584,8 +596,8 @@ async function checkout(senderId: string, session: any) {
       return
     }
     
-    // Create order items
-    const orderItems = cartItems.map((item: any) => ({
+    // Create order items (only for menu items, not customer info)
+    const orderItems = menuItems.map((item: any) => ({
       order_id: order.id,
       menu_item_id: item.id,
       quantity: item.quantity,
@@ -610,7 +622,6 @@ async function checkout(senderId: string, session: any) {
       .from('bot_sessions')
       .update({ 
         cart_items: [],
-        staff_notes: null,
         stage: 'idle'
       })
       .eq('messenger_psid', senderId)
