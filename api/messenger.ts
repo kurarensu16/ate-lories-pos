@@ -331,7 +331,7 @@ async function showTodaysMenu(senderId: string) {
 
   await sendQuickReplies(senderId, 'Select an action:', [
     { content_type: 'text', title: 'Cart', payload: 'VIEW_CART' },
-    { content_type: 'text', title: 'Checkout', payload: 'CHECKOUT' },
+    { content_type: 'text', title: 'Place Order', payload: 'PLACE_ORDER' },
     { content_type: 'text', title: 'Help', payload: 'HELP' },
   ])
 }
@@ -358,7 +358,7 @@ async function showCart(senderId: string, session: any) {
   
   message += `\n*Total: ₱${total.toFixed(2)}*\n\n`
   await sendQuickReplies(senderId, message, [
-    { content_type: 'text', title: 'Checkout', payload: 'CHECKOUT' },
+    { content_type: 'text', title: 'Place Order', payload: 'PLACE_ORDER' },
     { content_type: 'text', title: 'Clear Cart', payload: 'CLEAR_CART' },
     { content_type: 'text', title: "Today's Menu", payload: 'MENU' },
   ])
@@ -690,6 +690,43 @@ async function placeOrder(senderId: string, session: any) {
   }
   if (customerAddressItem) {
     customerAddress = customerAddressItem.value
+  }
+  
+  // If we don't have customer info, ask for it first
+  if (!customerNameItem || !customerAddressItem) {
+    if (!customerNameItem) {
+      console.log('No customer name found, asking for name')
+      const { error } = await supabase
+        .from('bot_sessions')
+        .update({ stage: 'collecting_name' })
+        .eq('messenger_psid', senderId)
+      
+      if (error) {
+        console.error('Error setting collecting_name stage:', error)
+        await sendTextMessage(senderId, `Sorry, there was an error: ${error.message}. Please try again.`)
+        return
+      }
+      
+      await sendTextMessage(senderId, "Please provide your name for the order:")
+      return
+    }
+    
+    if (!customerAddressItem) {
+      console.log('No customer address found, asking for address')
+      const { error } = await supabase
+        .from('bot_sessions')
+        .update({ stage: 'collecting_address' })
+        .eq('messenger_psid', senderId)
+      
+      if (error) {
+        console.error('Error setting collecting_address stage:', error)
+        await sendTextMessage(senderId, `Sorry, there was an error: ${error.message}. Please try again.`)
+        return
+      }
+      
+      await sendTextMessage(senderId, "Please provide your block and lot number (e.g., Block 5, Lot 12):")
+      return
+    }
   }
   
   try {
