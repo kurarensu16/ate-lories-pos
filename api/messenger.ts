@@ -69,7 +69,7 @@ function verifySignature(req: any): boolean {
 async function sendTextMessage(recipientId: string, text: string) {
   if (!FB_PAGE_ACCESS_TOKEN) return
   const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_ACCESS_TOKEN}`
-  await fetch(url, {
+  const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -78,12 +78,13 @@ async function sendTextMessage(recipientId: string, text: string) {
       message: { text },
     }),
   })
+  try { const json = await resp.json(); console.log('sendTextMessage:', json) } catch (_) {}
 }
 
 async function sendQuickReplies(recipientId: string, text: string, quickReplies: any[]) {
   if (!FB_PAGE_ACCESS_TOKEN) return
   const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_ACCESS_TOKEN}`
-  await fetch(url, {
+  const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -95,6 +96,7 @@ async function sendQuickReplies(recipientId: string, text: string, quickReplies:
       },
     }),
   })
+  try { const json = await resp.json(); console.log('sendQuickReplies:', json) } catch (_) {}
 }
 
 function defaultQuickReplies() {
@@ -109,7 +111,7 @@ function defaultQuickReplies() {
 async function sendGenericTemplate(recipientId: string, elements: any[]) {
   if (!FB_PAGE_ACCESS_TOKEN) return
   const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${FB_PAGE_ACCESS_TOKEN}`
-  await fetch(url, {
+  const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -126,6 +128,7 @@ async function sendGenericTemplate(recipientId: string, elements: any[]) {
       },
     }),
   })
+  try { const json = await resp.json(); console.log('sendGenericTemplate:', json) } catch (_) {}
 }
 
 function extractMessagingEvents(entry: any): any[] {
@@ -326,6 +329,9 @@ async function handlePostback(senderId: string, payload: string) {
     const itemId = payload.replace('REMOVE_', '')
     await removeFromCart(senderId, session, itemId)
   } else if (payload === 'VIEW_CART') {
+    try {
+      await sendTextMessage(senderId, 'Opening your cart...')
+    } catch (_) {}
     await showCart(senderId, session)
   } else if (payload === 'CHECKOUT') {
     await checkout(senderId, session)
