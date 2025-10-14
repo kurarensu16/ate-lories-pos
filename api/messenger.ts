@@ -172,14 +172,16 @@ function detectIntent(text: string): { type: string; args?: any } {
     return { type: 'menu' }
   }
 
-  // Cart synonyms
+  // Cart synonyms (more permissive, handles phrases like "view my cart please")
   if (
     t === 'cart' ||
     t === 'my cart' ||
     t === 'basket' ||
     t === 'order' ||
     t === 'orders' ||
-    /view( my)? (cart|basket)$/.test(t) ||
+    /\bview\b.*\b(cart|basket)\b/.test(t) ||
+    /\b(open|show|see)\b.*\b(cart|basket|orders?)\b/.test(t) ||
+    /\b(cart|basket)\b/.test(t) ||
     t === '2'
   ) {
     return { type: 'cart' }
@@ -419,7 +421,20 @@ async function showTodaysMenu(senderId: string) {
 }
 
 async function showCart(senderId: string, session: any) {
-  const cartItems = session.cart_items || []
+  // Refresh session to ensure latest cart state
+  let cartItems = session.cart_items || []
+  try {
+    const { data: freshSession } = await supabase
+      .from('bot_sessions')
+      .select('*')
+      .eq('messenger_psid', senderId)
+      .single()
+    if (freshSession && Array.isArray(freshSession.cart_items)) {
+      cartItems = freshSession.cart_items
+    }
+  } catch (_) {
+    // ignore and fall back to provided session
+  }
   
   // Filter out customer info items for display
   const menuItems = cartItems.filter((item: any) => item.type !== 'customer_name' && item.type !== 'customer_address')
