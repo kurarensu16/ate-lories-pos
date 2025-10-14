@@ -136,6 +136,77 @@ function extractMessagingEvents(entry: any): any[] {
 }
 
 // Bot logic functions
+
+function detectIntent(text: string): { type: string; args?: any } {
+  const t = text.trim().toLowerCase()
+
+  // Add by name: "add adobo" / "add 2 adobo" (we treat quantity as +1 for simplicity)
+  const addMatch = t.match(/^add\s+(.+)$/)
+  if (addMatch) return { type: 'add', args: { name: addMatch[1].trim() } }
+
+  // Remove by name: "remove adobo" / "delete adobo"
+  const removeMatch = t.match(/^(remove|delete)\s+(.+)$/)
+  if (removeMatch) return { type: 'remove_by_name', args: { name: removeMatch[2].trim() } }
+
+  // Clear cart synonyms
+  if (
+    /^clear\s+cart$/.test(t) ||
+    /^empty\s+cart$/.test(t) ||
+    /^reset\s+cart$/.test(t) ||
+    /^(clear|empty|reset)\s+(my\s+)?(cart|basket)$/.test(t)
+  ) {
+    return { type: 'clear' }
+  }
+
+  // Menu synonyms
+  if (
+    t === 'menu' ||
+    t === "today's menu" ||
+    t === 'whats the menu' ||
+    t === "what's the menu" ||
+    /^show( me)?( the)? menu$/.test(t) ||
+    /^view( the)? menu$/.test(t) ||
+    /(available items|what do you have|foods?|ulam|lunch|dinner)/.test(t) ||
+    t === '1'
+  ) {
+    return { type: 'menu' }
+  }
+
+  // Cart synonyms
+  if (
+    t === 'cart' ||
+    t === 'my cart' ||
+    t === 'basket' ||
+    t === 'order' ||
+    t === 'orders' ||
+    /view( my)? (cart|basket)$/.test(t) ||
+    t === '2'
+  ) {
+    return { type: 'cart' }
+  }
+
+  // Checkout / Place order synonyms
+  if (
+    t === 'checkout' ||
+    t === 'check out' ||
+    t === 'place order' ||
+    t === 'placeorder' ||
+    t === 'order now' ||
+    t === 'buy now' ||
+    t === 'submit order' ||
+    t === 'confirm order' ||
+    t === '3'
+  ) {
+    return { type: 'checkout' }
+  }
+
+  // Help / Greetings
+  if (/^(help|hi|hello|start|get started)$/.test(t)) {
+    return { type: 'help' }
+  }
+
+  return { type: 'unknown' }
+}
 async function handleTextMessage(senderId: string, text: string) {
   if (!supabase) {
     await sendTextMessage(senderId, "Bot is temporarily unavailable. Please try again later.")
@@ -208,21 +279,33 @@ async function handleTextMessage(senderId: string, text: string) {
     return
   }
   
-  if (text.includes('menu') || text === '1') {
-    await showTodaysMenu(senderId)
-  } else if (text === 'cart' || text === '2') {
-    await showCart(senderId, session)
-  } else if (text === 'checkout' || text === '3') {
-    await checkout(senderId, session)
-  } else if (text === 'place order' || text === 'placeorder') {
-    await placeOrder(senderId, session)
-  } else if (text.startsWith('add ')) {
-    const itemName = text.replace('add ', '').trim()
-    await addToCart(senderId, session, itemName)
-  } else if (text === 'clear' || text === 'reset') {
-    await clearCart(senderId, session)
-  } else {
-    await sendWelcomeMessage(senderId)
+  const intent = detectIntent(text)
+  switch (intent.type) {
+    case 'menu':
+      await showTodaysMenu(senderId)
+      break
+    case 'cart':
+      await showCart(senderId, session)
+      break
+    case 'checkout':
+      await checkout(senderId, session)
+      break
+    case 'add':
+      await addToCart(senderId, session, intent.args.name)
+      break
+    case 'remove_by_name':
+      await removeFromCartByName(senderId, session, intent.args.name)
+      break
+    case 'clear':
+      await clearCart(senderId, session)
+      break
+    case 'help':
+      await sendWelcomeMessage(senderId)
+      break
+    case 'unknown':
+    default:
+      await sendQuickReplies(senderId, "I didn't catch that. Try one of these:", defaultQuickReplies())
+      break
   }
 }
 
@@ -421,6 +504,28 @@ async function removeFromCart(senderId: string, session: any, itemId: string) {
     .eq('messenger_psid', senderId)
   
   await sendTextMessage(senderId, "Item removed from cart. Reply with 'cart' to view your order.")
+}
+
+async function removeFromCartByName(senderId: string, session: any, itemName: string) {
+  const cartItems = session.cart_items || []
+  if (cartItems.length === 0) {
+    await sendTextMessage(senderId, "Your cart is empty.")
+    return
+  }
+
+  const idx = cartItems.findIndex((i: any) => (i.name || '').toLowerCase().includes(itemName.toLowerCase()))
+  if (idx === -1) {
+    await sendTextMessage(senderId, `No item matching "${itemName}" in your cart.`)
+    return
+  }
+
+  const updatedItems = cartItems.filter((_: any, i: number) => i !== idx)
+  await supabase
+    .from('bot_sessions')
+    .update({ cart_items: updatedItems })
+    .eq('messenger_psid', senderId)
+
+  await sendTextMessage(senderId, `Removed "${cartItems[idx].name}" from your cart.`)
 }
 
 async function clearCart(senderId: string, session: any) {
