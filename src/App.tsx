@@ -113,11 +113,17 @@ function AppContent() {
             }
           />
 
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* 404 fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Default redirect - send unauthenticated users to /login */}
+          <Route
+            path="/"
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+          />
+
+          {/* 404 fallback - respect auth status */}
+          <Route
+            path="*"
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+          />
         </Routes>
       </Router>
       
