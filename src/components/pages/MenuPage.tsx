@@ -232,7 +232,7 @@ export const MenuPage: React.FC = () => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+          className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 font-medium"
         >
           Add New Item
         </button>
@@ -251,7 +251,7 @@ export const MenuPage: React.FC = () => {
             placeholder="Search menu items by name or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           />
           {searchQuery && (
             <button
@@ -353,7 +353,7 @@ export const MenuPage: React.FC = () => {
               {filter !== 'today' && (
                 <button
                   onClick={handleBulkAddToToday}
-                  className="bg-blue-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-blue-700"
+                  className="bg-primary-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-primary-600"
                 >
                   Add to Today
                 </button>
@@ -387,7 +387,7 @@ export const MenuPage: React.FC = () => {
                 type="checkbox"
                 checked={selectedItems.size === filteredItems.length}
                 onChange={handleSelectAll}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
               <span className="text-sm text-gray-600">Select All</span>
             </label>
@@ -423,7 +423,7 @@ export const MenuPage: React.FC = () => {
               {filter === 'all' && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  className="mt-4 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 font-medium"
                 >
                   Add Menu Item
                 </button>
@@ -447,7 +447,7 @@ export const MenuPage: React.FC = () => {
                         type="checkbox"
                         checked={selectedItems.has(item.id)}
                         onChange={() => handleSelectItem(item.id)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded flex-shrink-0"
                       />
                       <h4 className={`font-semibold text-base sm:text-lg truncate ${
                         item.is_available ? 'text-gray-900' : 'text-gray-500 line-through'
@@ -497,7 +497,7 @@ export const MenuPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleEdit(item)}
-                      className="bg-blue-100 text-blue-700 py-2 px-2 sm:px-3 rounded text-xs sm:text-sm font-medium hover:bg-blue-200 transition-colors"
+                      className="bg-primary-100 text-primary-700 py-2 px-2 sm:px-3 rounded text-xs sm:text-sm font-medium hover:bg-primary-200 transition-colors"
                     >
                       Edit
                     </button>

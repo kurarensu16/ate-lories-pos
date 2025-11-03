@@ -64,7 +64,7 @@ export const PWAInstallPrompt: React.FC = () => {
   if (!showInstallPrompt) return null
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50 md:left-auto md:right-4 md:max-w-sm">
+    <div className="fixed bottom-4 left-4 right-4 bg-primary-500 text-white p-4 rounded-lg shadow-lg z-50 md:left-auto md:right-4 md:max-w-sm">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,19 +73,19 @@ export const PWAInstallPrompt: React.FC = () => {
         </div>
         <div className="ml-3 flex-1">
           <h3 className="text-sm font-medium">Install POS App</h3>
-          <p className="mt-1 text-sm text-blue-100">
+          <p className="mt-1 text-sm text-primary-100">
             Install this app on your device for quick access and offline functionality.
           </p>
           <div className="mt-3 flex space-x-3">
             <button
               onClick={handleInstallClick}
-              className="bg-white text-blue-600 px-3 py-1 rounded text-sm font-medium hover:bg-blue-50 transition-colors"
+              className="bg-white text-primary-600 px-3 py-1 rounded text-sm font-medium hover:bg-primary-50 transition-colors"
             >
               Install
             </button>
             <button
               onClick={handleDismiss}
-              className="text-blue-100 hover:text-white text-sm font-medium transition-colors"
+              className="text-primary-100 hover:text-white text-sm font-medium transition-colors"
             >
               Not now
             </button>
@@ -93,7 +93,7 @@ export const PWAInstallPrompt: React.FC = () => {
         </div>
         <button
           onClick={handleDismiss}
-          className="ml-3 text-blue-100 hover:text-white"
+          className="ml-3 text-primary-100 hover:text-white"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

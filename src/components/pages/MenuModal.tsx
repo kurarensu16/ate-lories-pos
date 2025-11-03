@@ -143,7 +143,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                     setErrors({ ...errors, name: '' })
                   }
                 }}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter item name"
@@ -161,7 +161,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                 placeholder="Enter item description"
               />
             </div>
@@ -182,7 +182,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                     setErrors({ ...errors, price: '' })
                   }
                 }}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                   errors.price ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="0.00"
@@ -205,7 +205,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                     setErrors({ ...errors, category_id: '' })
                   }
                 }}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                   errors.category_id ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
@@ -227,7 +227,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                 id="is_available"
                 checked={formData.is_available}
                 onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
               <label htmlFor="is_available" className="ml-2 block text-sm text-gray-700">
                 Available for ordering
@@ -246,7 +246,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-md font-medium hover:bg-primary-600 disabled:opacity-50 transition-colors"
               >
                 {isLoading ? 'Saving...' : (item ? 'Update' : 'Create')}
               </button>

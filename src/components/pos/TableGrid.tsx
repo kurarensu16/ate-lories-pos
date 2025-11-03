@@ -23,7 +23,7 @@ export const TableGrid: React.FC = () => {
             onClick={() => setTable(table)}
             className={`
               p-6 rounded-lg border-2 text-center font-medium transition-colors
-              ${currentTable?.id === table.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
+              ${currentTable?.id === table.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'}
               ${table.status === 'occupied' 
                 ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' 
                 : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'

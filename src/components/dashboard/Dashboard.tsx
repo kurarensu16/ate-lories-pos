@@ -151,7 +151,7 @@ export const Dashboard: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 text-xs font-semibold rounded-full ${
                         order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        order.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'active' ? 'bg-primary-100 text-primary-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {order.status}

@@ -61,7 +61,7 @@ export const MenuGrid: React.FC = () => {
                 key={item.id}
                 onClick={() => addToCart(item)}
                 disabled={!item.is_available}
-                className="p-4 bg-white rounded-lg border border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-white"
+                className="p-4 bg-white rounded-lg border border-gray-200 text-left hover:border-primary-500 hover:bg-primary-50 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-white"
               >
                 <div className="font-medium text-gray-900 mb-1">{item.name}</div>
                 {item.description && (

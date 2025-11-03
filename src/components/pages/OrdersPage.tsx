@@ -278,7 +278,7 @@ export const OrdersPage: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={() => handleStatusUpdate(order.id, 'active')}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              className="bg-primary-500 text-white px-3 py-1 rounded text-sm hover:bg-primary-600"
             >
               Reopen
             </button>
@@ -289,7 +289,7 @@ export const OrdersPage: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={() => handleStatusUpdate(order.id, 'active')}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+              className="bg-primary-500 text-white px-3 py-1 rounded text-sm hover:bg-primary-600"
             >
               Reactivate
             </button>
@@ -333,7 +333,7 @@ export const OrdersPage: React.FC = () => {
             placeholder="Search orders by ID, table number, or item name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           />
           {searchQuery && (
             <button
@@ -521,7 +521,7 @@ export const OrdersPage: React.FC = () => {
                     <div className="flex flex-col space-y-2 ml-4">
                       <button
                         onClick={() => handleViewOrder(order)}
-                        className="bg-blue-100 text-blue-700 py-2 px-4 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
+                        className="bg-primary-100 text-primary-700 py-2 px-4 rounded text-sm font-medium hover:bg-primary-200 transition-colors"
                       >
                         View Details
                       </button>

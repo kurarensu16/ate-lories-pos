@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { Settings as SettingsIcon, Building2, Users as UsersIcon, Wrench } from 'lucide-react'
 
 interface RestaurantSettings {
   name: string
@@ -85,10 +86,10 @@ export const SettingsPage: React.FC = () => {
   }
 
   const tabs = [
-    { id: 'general', name: 'General', icon: '⚙️' },
-    { id: 'business', name: 'Business', icon: '🏢' },
-    { id: 'users', name: 'Users', icon: '👥' },
-    { id: 'system', name: 'System', icon: '🔧' }
+    { id: 'general', name: 'General', icon: SettingsIcon },
+    { id: 'business', name: 'Business', icon: Building2 },
+    { id: 'users', name: 'Users', icon: UsersIcon },
+    { id: 'system', name: 'System', icon: Wrench }
   ]
 
   const days = [
@@ -122,7 +123,7 @@ export const SettingsPage: React.FC = () => {
               </button>
               <button
                 onClick={handleSave}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors"
+                className="bg-primary-500 text-white px-4 py-2 rounded-md font-medium hover:bg-primary-600 transition-colors"
               >
                 Save Changes
               </button>
@@ -130,7 +131,7 @@ export const SettingsPage: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors"
+              className="bg-primary-500 text-white px-4 py-2 rounded-md font-medium hover:bg-primary-600 transition-colors"
             >
               Edit Settings
             </button>
@@ -142,20 +143,23 @@ export const SettingsPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="border-b border-gray-200">
           <nav className="flex space-x-8 px-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.name}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab.id
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon size={16} className="mr-2 inline-block" />
+                  {tab.name}
+                </button>
+              )
+            })}
           </nav>
         </div>
 
@@ -175,7 +179,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -187,7 +191,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -199,7 +203,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -210,7 +214,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.timezone}
                       onChange={(e) => handleInputChange('timezone', e.target.value)}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     >
                       <option value="America/New_York">Eastern Time</option>
                       <option value="America/Chicago">Central Time</option>
@@ -228,7 +232,7 @@ export const SettingsPage: React.FC = () => {
                     onChange={(e) => handleInputChange('address', e.target.value)}
                     disabled={!isEditing}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
               </div>
@@ -249,7 +253,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.currency}
                       onChange={(e) => handleInputChange('currency', e.target.value)}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     >
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
@@ -267,7 +271,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.tax_rate}
                       onChange={(e) => handleInputChange('tax_rate', parseFloat(e.target.value))}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                   <div>
@@ -280,7 +284,7 @@ export const SettingsPage: React.FC = () => {
                       value={formData.service_charge}
                       onChange={(e) => handleInputChange('service_charge', parseFloat(e.target.value))}
                       disabled={!isEditing}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                     />
                   </div>
                 </div>
@@ -300,7 +304,7 @@ export const SettingsPage: React.FC = () => {
                           checked={!formData.operating_hours[day.key as keyof typeof formData.operating_hours].closed}
                           onChange={(e) => handleOperatingHoursChange(day.key, 'closed', !e.target.checked)}
                           disabled={!isEditing}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded disabled:opacity-50"
                         />
                         <span className="text-sm text-gray-600">Open</span>
                       </div>
@@ -311,7 +315,7 @@ export const SettingsPage: React.FC = () => {
                             value={formData.operating_hours[day.key as keyof typeof formData.operating_hours].open}
                             onChange={(e) => handleOperatingHoursChange(day.key, 'open', e.target.value)}
                             disabled={!isEditing}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                           />
                           <span className="text-gray-500">to</span>
                           <input
@@ -319,7 +323,7 @@ export const SettingsPage: React.FC = () => {
                             value={formData.operating_hours[day.key as keyof typeof formData.operating_hours].close}
                             onChange={(e) => handleOperatingHoursChange(day.key, 'close', e.target.value)}
                             disabled={!isEditing}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                           />
                         </>
                       )}
@@ -343,7 +347,7 @@ export const SettingsPage: React.FC = () => {
                       <p className="text-sm text-gray-500">{user?.email}</p>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200">
+                      <button className="bg-primary-100 text-primary-700 px-3 py-1 rounded text-sm hover:bg-primary-200">
                         Edit Profile
                       </button>
                       <button
@@ -397,7 +401,7 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" defaultChecked className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                     </label>
                   </div>
 
@@ -408,7 +412,7 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                     </label>
                   </div>
 
@@ -419,7 +423,7 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" defaultChecked className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                     </label>
                   </div>
                 </div>
@@ -438,12 +442,12 @@ export const SettingsPage: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-primary-50 border border-primary-200 rounded-lg">
                     <div>
-                      <h4 className="text-sm font-medium text-blue-900">Export Data</h4>
-                      <p className="text-sm text-blue-700">Download all data as CSV files</p>
+                      <h4 className="text-sm font-medium text-primary-900">Export Data</h4>
+                      <p className="text-sm text-primary-700">Download all data as CSV files</p>
                     </div>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                    <button className="bg-primary-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-600">
                       Export
                     </button>
                   </div>

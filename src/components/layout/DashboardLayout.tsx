@@ -41,13 +41,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       {/* Sidebar */}
       <div className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col`}>
         {/* Logo Section */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg h-16 flex items-center justify-between px-6">
           {isSidebarOpen && (
-            <h1 className="text-xl font-bold text-gray-800">Ate Lorie's POS</h1>
+            <h1 className="text-xl font-bold text-white">Ate Lorie's POS</h1>
           )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100"
+            className="p-2 rounded-lg hover:bg-white/20 text-white transition-colors"
           >
             {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
           </button>
@@ -64,7 +64,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                     to={item.href}
                     className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                       location.pathname === item.href
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-primary-100 text-primary-700'
                         : 'text-gray-700 hover:bg-gray-100'
                     } ${!isSidebarOpen ? 'justify-center' : ''}`}
                   >
@@ -80,7 +80,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         {/* User Section */}
         <div className="p-4 border-t">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
               {user?.name?.charAt(0)}
             </div>
             {isSidebarOpen && (
@@ -100,21 +100,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white shadow-sm border-b">
+        <header className="bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg">
           <div className="flex justify-between items-center h-16 px-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-white">
                 {getHeaderTitle()}
               </h2>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-700">
-                Welcome back, <span className="font-medium">{user?.name}</span>
+              <div className="text-sm text-primary-50">
+                Welcome back, <span className="font-medium text-white">{user?.name}</span>
               </div>
               <button
                 onClick={logout}
-                className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded text-sm font-medium text-gray-700"
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors border border-white/30"
               >
                 Logout
               </button>

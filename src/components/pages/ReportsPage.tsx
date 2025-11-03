@@ -1,26 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { formatCurrency } from '../../lib/utils'
-
-interface ReportData {
-  totalRevenue: number
-  orderCount: number
-  orders: Array<{
-    id: string
-    total_amount: number
-    status: string
-    customer_name: string | null
-    created_at: string
-    order_items: Array<{
-      quantity: number
-      unit_price: number
-      menu_items: {
-        name: string
-      }
-    }>
-  }>
-}
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts'
 
 export const ReportsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'custom'>('today')
@@ -50,7 +45,7 @@ export const ReportsPage: React.FC = () => {
   const { startDate, endDate } = getDateRange()
 
   // Fetch revenue data
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+  const { isLoading: revenueLoading } = useQuery({
     queryKey: ['revenueStats', startDate, endDate],
     queryFn: () => api.getRevenueStats(startDate, endDate)
   })
@@ -106,6 +101,47 @@ export const ReportsPage: React.FC = () => {
       }
     })
   }
+
+  // Revenue over time (grouped by date)
+  const revenueOverTime = useMemo(() => {
+    const revenueByDate: { [key: string]: number } = {}
+    filteredOrders.forEach((order: any) => {
+      if (order.status !== 'cancelled') {
+        const date = new Date(order.created_at).toISOString().split('T')[0]
+        revenueByDate[date] = (revenueByDate[date] || 0) + order.total_amount
+      }
+    })
+    
+    // Sort dates and format for chart
+    return Object.entries(revenueByDate)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([date, revenue]) => ({
+        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        revenue: parseFloat(revenue.toFixed(2))
+      }))
+  }, [filteredOrders])
+
+  // Prepare hourly revenue data for chart
+  const hourlyRevenueData = useMemo(() => {
+    return Array.from({ length: 24 }, (_, hour) => ({
+      hour: `${hour.toString().padStart(2, '0')}:00`,
+      revenue: parseFloat((hourlyRevenue[hour] || 0).toFixed(2))
+    }))
+  }, [hourlyRevenue])
+
+  // Prepare order status data for pie chart
+  const orderStatusData = [
+    { name: 'Completed', value: completedOrders, color: '#10b981' },
+    { name: 'Active', value: totalOrders - completedOrders - cancelledOrders, color: '#eab308' },
+    { name: 'Cancelled', value: cancelledOrders, color: '#ef4444' }
+  ].filter(item => item.value > 0)
+
+  // Prepare top selling items data for bar chart
+  const topSellingItemsChartData = topSellingItems.map(item => ({
+    name: item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name,
+    quantity: item.quantity,
+    revenue: parseFloat(item.revenue.toFixed(2))
+  }))
 
   // Customer analytics
   const customerOrders: { [key: string]: number } = {}
@@ -228,8 +264,8 @@ export const ReportsPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
@@ -276,73 +312,145 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Revenue Over Time Chart */}
+      {revenueOverTime.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Revenue Over Time</h3>
+            <p className="mt-1 text-sm text-gray-500">Daily revenue trend for the selected period</p>
+          </div>
+          <div className="p-6">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={revenueOverTime}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px',
+                    padding: '8px'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#00674F" 
+                  strokeWidth={2}
+                  dot={{ fill: '#00674F', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Charts and Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Selling Items */}
+        {/* Top Selling Items Bar Chart */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">Top Selling Items</h3>
             <p className="mt-1 text-sm text-gray-500">Most popular menu items by quantity sold</p>
           </div>
           <div className="p-6">
-            {topSellingItems.length > 0 ? (
-              <div className="space-y-4">
-                {topSellingItems.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                        {index + 1}
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                        <p className="text-sm text-gray-500">{item.quantity} sold</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{formatCurrency(item.revenue)}</p>
-                      <p className="text-sm text-gray-500">revenue</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {topSellingItemsChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={topSellingItemsChartData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis type="number" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    stroke="#6b7280"
+                    style={{ fontSize: '12px' }}
+                    width={100}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => `${value} units`}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      padding: '8px'
+                    }}
+                  />
+                  <Bar dataKey="quantity" fill="#00674F" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
               <p className="text-gray-500 text-center py-4">No sales data available</p>
             )}
           </div>
         </div>
 
-        {/* Order Status Breakdown */}
+        {/* Order Status Pie Chart */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 className="text-lg leading-6 font-medium text-gray-900">Order Status</h3>
             <p className="mt-1 text-sm text-gray-500">Breakdown of order statuses</p>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                  <span className="text-sm font-medium text-gray-900">Completed</span>
+            {orderStatusData.length > 0 ? (
+              <div className="flex flex-col items-center">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={orderStatusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry: any) => 
+                        `${entry.name}: ${entry.value} (${(entry.percent * 100).toFixed(0)}%)`
+                      }
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {orderStatusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => `${value} orders`}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        padding: '8px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2 w-full">
+                  {orderStatusData.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-3" 
+                          style={{ backgroundColor: item.color }}
+                        ></div>
+                        <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                      </div>
+                      <span className="text-sm text-gray-600">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-sm text-gray-600">{completedOrders}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                  <span className="text-sm font-medium text-gray-900">Active</span>
-                </div>
-                <span className="text-sm text-gray-600">
-                  {totalOrders - completedOrders - cancelledOrders}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                  <span className="text-sm font-medium text-gray-900">Cancelled</span>
-                </div>
-                <span className="text-sm text-gray-600">{cancelledOrders}</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-gray-500 text-center py-4">No order data available</p>
+            )}
           </div>
         </div>
       </div>
@@ -355,32 +463,34 @@ export const ReportsPage: React.FC = () => {
             <p className="mt-1 text-sm text-gray-500">Revenue breakdown by hour for today</p>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {Array.from({ length: 24 }, (_, hour) => {
-                const revenue = hourlyRevenue[hour] || 0
-                const maxRevenue = Math.max(...Object.values(hourlyRevenue), 1)
-                const percentage = (revenue / maxRevenue) * 100
-                
-                return (
-                  <div key={hour} className="flex items-center">
-                    <div className="w-12 text-sm text-gray-600">
-                      {hour.toString().padStart(2, '0')}:00
-                    </div>
-                    <div className="flex-1 mx-4">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="w-20 text-sm text-gray-900 text-right">
-                      {formatCurrency(revenue)}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={hourlyRevenueData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="hour" 
+                  stroke="#6b7280"
+                  style={{ fontSize: '11px' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px',
+                    padding: '8px'
+                  }}
+                />
+                <Bar dataKey="revenue" fill="#00674F" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
@@ -397,7 +507,7 @@ export const ReportsPage: React.FC = () => {
               {topCustomers.map(([customerName, orderCount], index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600">
+                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-sm font-medium text-primary-600">
                       {index + 1}
                     </div>
                     <div className="ml-3">
