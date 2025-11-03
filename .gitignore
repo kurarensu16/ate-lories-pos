@@ -46,3 +46,8 @@ dist-ssr/
 
 # Build output
 build/
+
+# Sensitive local notes
+notes.txt
+notes*.txt
+*.secrets.txt
