@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { isDesktopRuntime } from '../../lib/api'
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -8,6 +9,7 @@ export const LoginForm: React.FC = () => {
   const [error, setError] = useState('')
   
   const { login, isLoading } = useAuthStore()
+  const desktopRuntime = isDesktopRuntime()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -45,6 +47,11 @@ export const LoginForm: React.FC = () => {
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded text-sm">
                 {error}
+              </div>
+            )}
+            {!desktopRuntime && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded text-sm">
+                Desktop runtime not detected. Please run via Electron using <code>npm run dev</code> or <code>npm run start:desktop</code>.
               </div>
             )}
 
@@ -89,13 +96,16 @@ export const LoginForm: React.FC = () => {
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !desktopRuntime}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>
+          <p className="mt-4 text-xs text-gray-500">
+            Default local admin: <span className="font-medium">admin@local.pos</span> / <span className="font-medium">admin123</span>
+          </p>
 
           
         </div>

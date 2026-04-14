@@ -75,7 +75,21 @@ export default defineConfig([
 
 # Ate Lorie's POS System
 
-A modern Point of Sale system built for Ate Lorie's restaurant with React, TypeScript, and Supabase.
+A modern Point of Sale system built for Ate Lorie's restaurant with React, TypeScript, Electron, and SQLite.
+
+## Desktop Local Mode (Electron + SQLite)
+
+This project now runs as a local desktop app powered by Electron and SQLite.
+
+- Start desktop development: `npm run dev`
+- Build renderer + Electron: `npm run build`
+- Run packaged desktop runtime: `npm run start:desktop`
+- Build Windows installer: `npm run dist:win`
+
+Default local admin credentials:
+
+- Email: `admin@local.pos`
+- Password: `admin123`
 
 ## Features
 

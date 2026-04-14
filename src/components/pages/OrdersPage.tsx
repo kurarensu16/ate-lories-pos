@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { formatCurrency } from '../../lib/utils'
+import { useToast } from '../ui/ToastProvider'
 
 interface OrderWithDetails {
   id: string
@@ -9,6 +10,7 @@ interface OrderWithDetails {
   status: string
   total_amount: number
   customer_name: string | null
+  customer_address?: string | null
   staff_notes: string | null
   created_at: string
   updated_at: string
@@ -34,6 +36,7 @@ interface OrderWithDetails {
 }
 
 export const OrdersPage: React.FC = () => {
+  const toast = useToast()
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null)
@@ -78,19 +81,11 @@ export const OrdersPage: React.FC = () => {
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
-      const { error } = await (api.supabase as any)
-        .from('orders')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
-      
-      if (error) throw error
+      await api.updateOrderStatus(orderId, status)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
-      alert('Order status updated successfully')
+      toast.success('Order status updated successfully')
     }
   })
 
@@ -98,7 +93,7 @@ export const OrdersPage: React.FC = () => {
     try {
       await updateOrderStatusMutation.mutateAsync({ orderId, status: newStatus })
     } catch (error) {
-      alert('Error updating order status')
+      toast.error('Error updating order status')
     }
   }
 
@@ -112,7 +107,7 @@ export const OrdersPage: React.FC = () => {
     const printWindow = window.open('', '_blank', 'width=800,height=600')
     
     if (!printWindow) {
-      alert('Please allow popups to print the receipt')
+      toast.info('Please allow popups to print the receipt')
       return
     }
 

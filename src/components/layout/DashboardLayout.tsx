@@ -9,7 +9,8 @@ import {
   TrendingUp, 
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -20,19 +21,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const { user, logout } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const location = useLocation()
+  type Role = 'admin' | 'staff' | 'cashier'
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
     { name: 'POS', href: '/pos', icon: CreditCard },
     { name: 'Orders', href: '/orders', icon: ClipboardList },
     { name: 'Menu', href: '/menu', icon: Utensils },
-    { name: 'Reports', href: '/reports', icon: TrendingUp },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'staff'] as Role[] },
+    { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] as Role[] },
   ]
+  const visibleNavigation = navigation.filter((item) => !item.roles || item.roles.includes(user?.role ?? 'cashier'))
 
   // Update header title based on current route
   const getHeaderTitle = () => {
-    const currentNav = navigation.find(nav => nav.href === location.pathname)
+    const currentNav = visibleNavigation.find(nav => nav.href === location.pathname)
     return currentNav?.name || 'Dashboard'
   }
 
@@ -56,7 +59,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6">
           <ul className="space-y-2">
-            {navigation.map((item) => {
+            {visibleNavigation.map((item) => {
               const IconComponent = item.icon
               return (
                 <li key={item.name}>
@@ -94,6 +97,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               </div>
             )}
           </div>
+          <button
+            onClick={() => void logout()}
+            className={`mt-3 w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 transition-colors ${!isSidebarOpen ? 'justify-center' : ''}`}
+          >
+            <LogOut size={18} className={isSidebarOpen ? 'mr-2' : ''} />
+            {isSidebarOpen && <span>Sign Out</span>}
+          </button>
         </div>
       </div>
 
@@ -112,12 +122,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               <div className="text-sm text-primary-50">
                 Welcome back, <span className="font-medium text-white">{user?.name}</span>
               </div>
-              <button
-                onClick={logout}
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors border border-white/30"
-              >
-                Logout
-              </button>
             </div>
           </div>
         </header>

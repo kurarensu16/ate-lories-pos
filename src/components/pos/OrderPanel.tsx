@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { usePosStore } from '../../stores/usePosStore'
 import { formatCurrency } from '../../lib/utils'
 import { api } from '../../lib/api'
-import { offlineStore, isOnline } from '../../lib/offlineStore'
+import { Wallet, CreditCard, Smartphone, Landmark, Banknote, ShoppingCart } from 'lucide-react'
 
 interface NotificationProps {
   type: 'success' | 'error' | 'info'
@@ -94,11 +94,11 @@ export const OrderPanel: React.FC = () => {
   } | null>(null)
 
   const paymentMethods = [
-    { id: 'cash', name: 'Cash', icon: '💵' },
-    { id: 'card', name: 'Credit/Debit Card', icon: '💳' },
-    { id: 'digital', name: 'Digital Wallet', icon: '📱' },
-    { id: 'bank_transfer', name: 'Bank Transfer', icon: '🏦' },
-    { id: 'other', name: 'Other', icon: '💰' }
+    { id: 'cash', name: 'Cash', icon: Wallet },
+    { id: 'card', name: 'Credit/Debit Card', icon: CreditCard },
+    { id: 'digital', name: 'Digital Wallet', icon: Smartphone },
+    { id: 'bank_transfer', name: 'Bank Transfer', icon: Landmark },
+    { id: 'other', name: 'Other', icon: Banknote }
   ]
 
   const total = getCartTotal()
@@ -113,46 +113,21 @@ export const OrderPanel: React.FC = () => {
     setShowPaymentModal(false)
     
     try {
-      let order: any = null
-      
-      if (isOnline()) {
-        // Online: Create order in database
-        order = await api.createOrder({
-          customer_name: customerName,
-          total_amount: total,
-          status: 'active'
-        }, cart.map(item => ({
-          menu_item_id: item.menu_item_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price
-        })))
+      const order = await api.createOrder({
+        customer_name: customerName,
+        total_amount: total,
+        status: 'active'
+      }, cart.map(item => ({
+        menu_item_id: item.menu_item_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      })))
 
-        // Complete the order with payment
-        await api.completeOrder(order.id, {
-          amount: total,
-          method: paymentMethod,
-          status: 'completed'
-        })
-      } else {
-        // Offline: Store order locally
-        const offlineOrder = {
-          id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          items: cart,
-          customerName,
-          total,
-          paymentMethod,
-          timestamp: Date.now(),
-          synced: false
-        }
-        
-        await offlineStore.saveOrder(offlineOrder)
-        order = offlineOrder
-        
-        setNotification({
-          type: 'info',
-          message: 'Order saved offline. Will sync when connection is restored.'
-        })
-      }
+      await api.completeOrder(order.id, {
+        amount: total,
+        method: paymentMethod,
+        status: 'completed'
+      })
 
       // Generate receipt data
       const selectedMethod = paymentMethods.find(m => m.id === paymentMethod)
@@ -176,17 +151,10 @@ export const OrderPanel: React.FC = () => {
       setShowReceipt(true)
       
       // Show success notification
-      if (isOnline()) {
-        setNotification({
-          type: 'success',
-          message: `Order #${order.id.slice(-6)} processed successfully! Total: ${formatCurrency(total)} (${selectedMethod?.name})`
-        })
-      } else {
-        setNotification({
-          type: 'success',
-          message: `Order saved offline! Total: ${formatCurrency(total)} (${selectedMethod?.name})`
-        })
-      }
+      setNotification({
+        type: 'success',
+        message: `Order #${order.id.slice(-6)} processed successfully! Total: ${formatCurrency(total)} (${selectedMethod?.name})`
+      })
       
       // Clear cart and reset payment method
       clearCart()
@@ -288,7 +256,7 @@ export const OrderPanel: React.FC = () => {
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        <span className="mr-2 text-xl">{method.icon}</span>
+                        <method.icon className="mr-2 h-5 w-5" />
                         <span className="text-sm font-medium">{method.name}</span>
                       </button>
                     ))}
@@ -457,7 +425,7 @@ export const OrderPanel: React.FC = () => {
       <div className="flex-1 p-4 overflow-y-auto">
         {cart.length === 0 ? (
           <div className="text-center mt-8">
-            <div className="text-gray-400 text-6xl mb-4">🛒</div>
+            <ShoppingCart className="mx-auto mb-4 h-14 w-14 text-gray-300" />
             <p className="text-gray-500 text-lg">No items added</p>
             <p className="text-gray-400 text-sm mt-1">Select items from the menu to start an order</p>
           </div>

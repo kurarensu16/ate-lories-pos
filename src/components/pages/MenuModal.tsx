@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { type MenuItem } from '../../types'
+import { useToast } from '../ui/ToastProvider'
 
 interface MenuModalProps {
   item?: MenuItem | null
@@ -16,6 +17,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   onClose, 
   onSuccess 
 }) => {
+  const toast = useToast()
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -52,7 +54,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   const createMutation = useMutation({
     mutationFn: api.createMenuItem,
     onSuccess: () => {
-      alert('Menu item created successfully')
+      toast.success('Menu item created successfully')
       onSuccess()
     }
   })
@@ -60,7 +62,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; data: any }) => api.updateMenuItem(data.id, data.data),
     onSuccess: () => {
-      alert('Menu item updated successfully')
+      toast.success('Menu item updated successfully')
       onSuccess()
     }
   })
@@ -114,7 +116,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
     } catch (error: any) {
       console.error('Error:', error)
       const errorMessage = error?.message || `Error ${item ? 'updating' : 'creating'} menu item`
-      alert(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
